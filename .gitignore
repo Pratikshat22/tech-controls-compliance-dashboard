@@ -1,0 +1,17 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Power BI (local cache files, never the .pbix itself)
+*.pbix.bak
+~$*.xlsx
+
+# Byte-compiled
+*.pyo

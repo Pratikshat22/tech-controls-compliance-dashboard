@@ -1,0 +1,9 @@
+ControlCategoryKey,CategoryName,NISTFunction,TestFrequency,ControlType,BaseExceptionRate,AvgRemediationDaysHealthy
+1,Access Management,Protect,Monthly,Preventive,0.12,25
+2,Segregation of Duties,Protect,Quarterly,Detective,0.15,35
+3,Change Management,Protect,Monthly,Preventive,0.22,70
+4,Logical Security & Authentication,Protect,Quarterly,Preventive,0.08,20
+5,Backup & Recovery,Recover,Monthly,Detective,0.05,15
+6,Encryption & Data Protection,Protect,Semi-Annual,Preventive,0.06,30
+7,Vendor & Third-Party Oversight,Identify,Quarterly,Detective,0.1,45
+8,Incident Response & Monitoring,Detect,Monthly,Detective,0.1,10

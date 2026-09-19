@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Technology Controls & Compliance Monitoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EDEFF2; --surface:#FFFFFF; --border:#D6DBE1; --border-strong:#B9C1C9;
+    --ink:#16222C; --ink-soft:#56636E; --ink-faint:#8B96A0;
+    --accent:#20415C; --accent-soft:#E7EDF1;
+    --good:#2E7D46; --good-soft:#E5F1E8;
+    --watch:#B7791F; --watch-soft:#FBF0DE;
+    --bad:#B23A34; --bad-soft:#F7E4E2;
+    --radius:3px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12181D; --surface:#181F26; --border:#2B343C; --border-strong:#3B4750;
+      --ink:#E7ECEF; --ink-soft:#AAB6BF; --ink-faint:#7A868F;
+      --accent:#7FA6C4; --accent-soft:#1C2A34;
+      --good:#5FBE7C; --good-soft:#16261B;
+      --watch:#E0AA53; --watch-soft:#2C2311;
+      --bad:#E2726B; --bad-soft:#2E1917;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12181D; --surface:#181F26; --border:#2B343C; --border-strong:#3B4750;
+    --ink:#E7ECEF; --ink-soft:#AAB6BF; --ink-faint:#7A868F;
+    --accent:#7FA6C4; --accent-soft:#1C2A34;
+    --good:#5FBE7C; --good-soft:#16261B;
+    --watch:#E0AA53; --watch-soft:#2C2311;
+    --bad:#E2726B; --bad-soft:#2E1917;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Sans', Arial, sans-serif;
+    font-size:14px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', 'Courier New', monospace;}
+  .wrap{max-width:1180px; margin:0 auto; padding:28px 24px 80px;}
+
+  header.top{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    gap:24px; padding-bottom:20px; border-bottom:1px solid var(--border-strong);
+    margin-bottom:26px; flex-wrap:wrap;
+  }
+  header.top h1{
+    font-family:'Source Serif 4', Georgia, serif; font-weight:600;
+    font-size:28px; margin:0 0 6px; letter-spacing:-0.01em;
+  }
+  header.top p{margin:0; color:var(--ink-soft); font-size:13.5px; max-width:56ch;}
+  header.top .asof{
+    text-align:right; color:var(--ink-faint); font-size:12px;
+  }
+  header.top .asof .d{color:var(--ink); font-weight:500; font-size:13px;}
+
+  section{margin-bottom:44px;}
+  h2{
+    font-family:'Source Serif 4', Georgia, serif; font-weight:600;
+    font-size:19px; margin:0 0 4px; color:var(--ink);
+  }
+  .section-sub{color:var(--ink-soft); font-size:13px; margin:0 0 16px; max-width:78ch;}
+
+  /* KPI strip */
+  .kpi-strip{
+    display:grid; grid-template-columns:repeat(6, 1fr);
+    border:1px solid var(--border); background:var(--surface);
+  }
+  .kpi{
+    padding:16px 16px; border-right:1px solid var(--border);
+    display:flex; flex-direction:column; gap:6px; min-width:0;
+  }
+  .kpi:last-child{border-right:none;}
+  .kpi .num{font-family:'IBM Plex Mono', monospace; font-size:23px; font-weight:600; color:var(--ink); letter-spacing:-0.02em;}
+  .kpi .num.bad{color:var(--bad);}
+  .kpi .num.watch{color:var(--watch);}
+  .kpi .label{font-size:11.5px; color:var(--ink-soft); line-height:1.3;}
+  .kpi .sub{font-size:11px; color:var(--ink-faint);}
+
+  @media (max-width:900px){
+    .kpi-strip{grid-template-columns:repeat(3,1fr);}
+    .kpi:nth-child(3){border-right:none;}
+    .kpi:nth-child(n+4){border-top:1px solid var(--border);}
+  }
+  @media (max-width:520px){
+    .kpi-strip{grid-template-columns:repeat(2,1fr);}
+    .kpi:nth-child(2n){border-right:none;}
+    .kpi:nth-child(n+3){border-top:1px solid var(--border);}
+  }
+
+  /* Heat map */
+  .heat-scroll{overflow-x:auto; border:1px solid var(--border); background:var(--surface);}
+  table.heat{border-collapse:collapse; width:100%; min-width:760px;}
+  table.heat th, table.heat td{
+    border:1px solid var(--border); padding:0; text-align:center;
+  }
+  table.heat thead th{
+    background:var(--accent-soft); color:var(--accent); font-weight:600;
+    font-size:11px; padding:9px 6px; white-space:nowrap;
+  }
+  table.heat thead th.env-onprem{ box-shadow: inset 0 -3px 0 var(--bad); }
+  table.heat thead th.env-hybrid{ box-shadow: inset 0 -3px 0 var(--watch); }
+  table.heat thead th.env-cloud{ box-shadow: inset 0 -3px 0 var(--good); }
+  table.heat tbody th{
+    text-align:left; padding:9px 12px; font-weight:500; font-size:12.5px;
+    background:var(--surface); white-space:nowrap; color:var(--ink);
+  }
+  table.heat td .cell{
+    padding:10px 4px; font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+    font-weight:600; cursor:default;
+  }
+  .heat-legend{display:flex; align-items:center; gap:10px; margin-top:10px; font-size:11.5px; color:var(--ink-soft);}
+  .heat-legend .bar{height:8px; width:160px; border-radius:2px;
+    background:linear-gradient(90deg, var(--good), var(--watch), var(--bad));}
+  .heat-note{font-size:12px; color:var(--ink-faint); margin-top:8px;}
+  .env-key{display:flex; gap:16px; font-size:11px; color:var(--ink-soft); margin-top:10px; flex-wrap:wrap;}
+  .env-key span{display:inline-flex; align-items:center; gap:5px;}
+  .env-key i{width:9px; height:9px; display:inline-block; border-radius:1px;}
+
+  /* Aging bars */
+  .aging-list{border:1px solid var(--border); background:var(--surface);}
+  .aging-row{
+    display:grid; grid-template-columns:190px 1fr 74px 100px;
+    align-items:center; gap:14px; padding:11px 16px;
+    border-bottom:1px solid var(--border);
+  }
+  .aging-row:last-child{border-bottom:none;}
+  .aging-row.watch{background:var(--bad-soft);}
+  .aging-name{font-size:12.5px; font-weight:500;}
+  .aging-track{height:7px; background:var(--accent-soft); border-radius:2px; position:relative; overflow:hidden;}
+  .aging-fill{height:100%; background:var(--accent); border-radius:2px;}
+  .aging-row.watch .aging-fill{background:var(--bad);}
+  .aging-days{font-family:'IBM Plex Mono',monospace; font-size:12.5px; text-align:right; color:var(--ink);}
+  .aging-badge{font-size:10.5px; font-family:'IBM Plex Mono',monospace; text-align:right; color:var(--ink-faint);}
+  .aging-badge.hot{color:var(--bad); font-weight:600;}
+
+  /* What-if panel */
+  .whatif{
+    border:1px solid var(--border); background:var(--surface); padding:22px 24px;
+  }
+  .whatif-top{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:10px; margin-bottom:14px;}
+  .whatif-top .slaval{font-family:'IBM Plex Mono',monospace; font-size:15px; color:var(--accent); font-weight:600;}
+  input[type=range]{
+    width:100%; -webkit-appearance:none; height:5px; border-radius:3px;
+    background:linear-gradient(90deg, var(--accent-soft), var(--accent-soft));
+    outline:none; margin:6px 0 4px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:17px; height:17px; border-radius:50%;
+    background:var(--accent); border:3px solid var(--surface); box-shadow:0 0 0 1px var(--border-strong);
+    cursor:pointer; margin-top:-6px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:17px; height:17px; border-radius:50%; background:var(--accent);
+    border:3px solid var(--surface); box-shadow:0 0 0 1px var(--border-strong); cursor:pointer;
+  }
+  .tick-row{display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-faint); margin-bottom:20px;}
+  .whatif-results{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); margin-bottom:18px;}
+  .whatif-result{background:var(--surface); padding:14px 16px;}
+  .whatif-result .val{font-family:'IBM Plex Mono',monospace; font-size:21px; font-weight:600;}
+  .whatif-result .val.pos{color:var(--bad);}
+  .whatif-result .val.neg{color:var(--good);}
+  .whatif-result .lbl{font-size:11.5px; color:var(--ink-soft); margin-top:3px;}
+  .env-breakdown{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .env-card{border:1px solid var(--border); padding:12px 14px;}
+  .env-card .env-title{font-size:11.5px; font-weight:600; color:var(--ink-soft); display:flex; align-items:center; gap:6px; margin-bottom:8px;}
+  .env-card .env-title i{width:8px; height:8px; border-radius:1px;}
+  .env-track{height:6px; background:var(--accent-soft); border-radius:2px; overflow:hidden; margin-bottom:6px;}
+  .env-fill{height:100%; background:var(--accent);}
+  .env-pct{font-family:'IBM Plex Mono',monospace; font-size:16px; font-weight:600;}
+  .env-n{font-size:10.5px; color:var(--ink-faint);}
+  .whatif-mech{font-size:12px; color:var(--ink-soft); margin-top:18px; padding-top:16px; border-top:1px solid var(--border); max-width:82ch;}
+  .whatif-mech b{color:var(--ink);}
+
+  /* two column */
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:22px;}
+  @media (max-width:760px){.twocol{grid-template-columns:1fr;}}
+  .panel{border:1px solid var(--border); background:var(--surface); padding:16px 18px;}
+  .panel h3{font-size:13.5px; margin:0 0 12px; font-weight:600;}
+  .bar-row{display:grid; grid-template-columns:1fr 40px; gap:10px; align-items:center; margin-bottom:9px;}
+  .bar-row .sys{font-size:12px; color:var(--ink-soft); margin-bottom:3px;}
+  .bar-track{height:8px; background:var(--accent-soft); border-radius:2px; overflow:hidden;}
+  .bar-fill{height:100%; background:var(--accent);}
+  .bar-row.hot .bar-fill{background:var(--bad);}
+  .bar-count{font-family:'IBM Plex Mono',monospace; font-size:12px; text-align:right;}
+
+  table.vendor{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.vendor th{
+    text-align:left; font-weight:600; color:var(--ink-soft); font-size:11px;
+    padding:8px 10px; border-bottom:1px solid var(--border-strong);
+  }
+  table.vendor td{padding:8px 10px; border-bottom:1px solid var(--border);}
+  table.vendor td.num, table.vendor th.num{text-align:right; font-family:'IBM Plex Mono',monospace;}
+  table.vendor tr.flag td{background:var(--bad-soft);}
+  .pill{
+    display:inline-block; padding:2px 7px; border-radius:2px; font-size:10.5px;
+    font-weight:600; font-family:'IBM Plex Mono',monospace;
+  }
+  .pill.high{background:var(--bad-soft); color:var(--bad);}
+  .pill.medium{background:var(--watch-soft); color:var(--watch);}
+  .pill.low{background:var(--good-soft); color:var(--good);}
+
+  .takeaway{
+    margin-top:14px; padding:12px 16px; background:var(--accent-soft);
+    border-left:3px solid var(--accent); font-size:12.5px; color:var(--ink); max-width:90ch;
+  }
+  .takeaway b{color:var(--accent);}
+
+  footer{
+    border-top:1px solid var(--border-strong); padding-top:18px; margin-top:10px;
+    font-size:11.5px; color:var(--ink-faint); max-width:90ch;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Technology Controls &amp; Compliance Monitoring</h1>
+      <p>Interactive prototype for an IT-audit / GRC / technology-risk portfolio project — access certifications, control testing, and third-party risk across 10 in-scope systems.</p>
+    </div>
+    <div class="asof">
+      <div>AS OF</div>
+      <div class="d" id="asOfDate"></div>
+    </div>
+  </header>
+
+  <section id="kpis">
+    <div class="kpi-strip" id="kpiStrip"></div>
+  </section>
+
+  <section id="heatmapSection">
+    <h2>Control Exception Rate — System &times; Control Category</h2>
+    <p class="section-sub">Each cell is <span class="mono">non-effective tests &divide; total tests</span> for that intersection, colored on the same scale a Power BI matrix conditional-formatting rule would use. Columns are grouped by hosting environment.</p>
+    <div class="heat-scroll">
+      <table class="heat" id="heatTable"></table>
+    </div>
+    <div class="heat-legend">
+      <span>0%</span><div class="bar"></div><span>30%+</span>
+      <span style="margin-left:10px;">— color scale, min/mid/max</span>
+    </div>
+    <div class="env-key">
+      <span><i style="background:var(--bad)"></i>On-Prem (legacy)</span>
+      <span><i style="background:var(--watch)"></i>Hybrid</span>
+      <span><i style="background:var(--good)"></i>Cloud</span>
+    </div>
+    <div class="takeaway" id="heatTakeaway"></div>
+  </section>
+
+  <section id="agingSection">
+    <h2>Remediation Aging by Control Category</h2>
+    <p class="section-sub">Average days a currently open/in-progress exception has been sitting unresolved, as of today. Bars scaled to the worst category.</p>
+    <div class="aging-list" id="agingList"></div>
+    <div class="takeaway" id="agingTakeaway"></div>
+  </section>
+
+  <section id="whatifSection">
+    <h2>What-If: Access Review SLA</h2>
+    <p class="section-sub">Mirrors a Power BI What-If Parameter (disconnected table + <span class="mono">SELECTEDVALUE()</span>). Moving the slider re-classifies the same 8,096 historical review cycles against a stricter or looser completion deadline — nobody's actual behavior changes, only the policy line drawn through it.</p>
+    <div class="whatif">
+      <div class="whatif-top">
+        <div>Access Review SLA (days)</div>
+        <div class="slaval"><span id="slaValue">30</span> days</div>
+      </div>
+      <input type="range" id="slaSlider" min="10" max="45" step="5" value="30">
+      <div class="tick-row"><span>10</span><span>15</span><span>20</span><span>25</span><span>30 (current)</span><span>35</span><span>40</span><span>45</span></div>
+
+      <div class="whatif-results">
+        <div class="whatif-result">
+          <div class="val" id="onTimePct">–</div>
+          <div class="lbl">% reviews on-time at this SLA</div>
+        </div>
+        <div class="whatif-result">
+          <div class="val" id="backlogCount">–</div>
+          <div class="lbl">reviews breaching this SLA</div>
+        </div>
+        <div class="whatif-result">
+          <div class="val" id="deltaBacklog">–</div>
+          <div class="lbl">incremental backlog vs. current 30-day policy</div>
+        </div>
+      </div>
+
+      <div class="env-breakdown" id="envBreakdown"></div>
+
+      <div class="whatif-mech" id="whatifMech"></div>
+    </div>
+  </section>
+
+  <section id="identitySection">
+    <h2>Identity Risk: Orphaned Accounts &amp; Segregation of Duties</h2>
+    <p class="section-sub">Distinct users flagged during quarterly access certification — counted once each, not once per review cycle.</p>
+    <div class="twocol">
+      <div class="panel">
+        <h3 id="orphanTitle">Orphaned accounts by system</h3>
+        <div id="orphanBars"></div>
+      </div>
+      <div class="panel">
+        <h3 id="sodTitle">SoD conflicts by system</h3>
+        <div id="sodBars"></div>
+      </div>
+    </div>
+    <div class="takeaway" id="identityTakeaway"></div>
+  </section>
+
+  <section id="vendorSection">
+    <h2>Third-Party Risk</h2>
+    <p class="section-sub">Latest assessment per vendor only — a vendor is judged against its own most recent record, not a superseded one.</p>
+    <table class="vendor" id="vendorTable">
+      <thead>
+        <tr><th>Service category</th><th class="num">Vendors</th><th class="num">Avg open findings</th><th class="num">Overdue for reassessment</th></tr>
+      </thead>
+      <tbody id="vendorBody"></tbody>
+    </table>
+    <div class="takeaway" id="vendorTakeaway"></div>
+  </section>
+
+  <footer>
+    This page is a working prototype built directly from the simulated dataset (star schema: Fact_ControlTest, Fact_AccessReview, Fact_VendorAssessment + conformed dimensions) to validate the analytical design before rebuilding it as a native Power BI report. The Excel data model, the full DAX measure library, and the written findings with build instructions are delivered alongside this preview.
+  </footer>
+
+</div>
+
+<script id="dataPayload" type="application/json">{"overall_exception_rate": 13.1, "overall_fail_rate": 4.6, "total_tests": 1320, "open_exceptions": 18, "avg_days_open_overall": 45.0, "exception_rate_by_category": [{"CategoryName": "Change Management", "Tests": 250, "NonPass": 57, "ExceptionRatePct": 22.8}, {"CategoryName": "Segregation of Duties", "Tests": 90, "NonPass": 15, "ExceptionRatePct": 16.7}, {"CategoryName": "Access Management", "Tests": 250, "NonPass": 33, "ExceptionRatePct": 13.2}, {"CategoryName": "Vendor & Third-Party Oversight", "Tests": 90, "NonPass": 11, "ExceptionRatePct": 12.2}, {"CategoryName": "Encryption & Data Protection", "Tests": 50, "NonPass": 6, "ExceptionRatePct": 12.0}, {"CategoryName": "Logical Security & Authentication", "Tests": 90, "NonPass": 10, "ExceptionRatePct": 11.1}, {"CategoryName": "Incident Response & Monitoring", "Tests": 250, "NonPass": 23, "ExceptionRatePct": 9.2}, {"CategoryName": "Backup & Recovery", "Tests": 250, "NonPass": 18, "ExceptionRatePct": 7.2}], "aging_by_category": [{"CategoryName": "Change Management", "OpenExceptions": 9, "AvgDaysOpen": 85.0, "MaxDaysOpen": 216}, {"CategoryName": "Access Management", "OpenExceptions": 1, "AvgDaysOpen": 4.0, "MaxDaysOpen": 4}, {"CategoryName": "Backup & Recovery", "OpenExceptions": 2, "AvgDaysOpen": 4.0, "MaxDaysOpen": 4}, {"CategoryName": "Incident Response & Monitoring", "OpenExceptions": 1, "AvgDaysOpen": 4.0, "MaxDaysOpen": 4}, {"CategoryName": "Segregation of Duties", "OpenExceptions": 3, "AvgDaysOpen": 4.0, "MaxDaysOpen": 4}, {"CategoryName": "Vendor & Third-Party Oversight", "OpenExceptions": 2, "AvgDaysOpen": 4.0, "MaxDaysOpen": 4}], "aged_over_60d_by_category": [{"CategoryName": "Change Management", "sum": 5, "count": 9, "AgedRatePctOfOpen": 55.6}, {"CategoryName": "Access Management", "sum": 0, "count": 1, "AgedRatePctOfOpen": 0.0}, {"CategoryName": "Backup & Recovery", "sum": 0, "count": 2, "AgedRatePctOfOpen": 0.0}, {"CategoryName": "Incident Response & Monitoring", "sum": 0, "count": 1, "AgedRatePctOfOpen": 0.0}, {"CategoryName": "Segregation of Duties", "sum": 0, "count": 3, "AgedRatePctOfOpen": 0.0}, {"CategoryName": "Vendor & Third-Party Oversight", "sum": 0, "count": 2, "AgedRatePctOfOpen": 0.0}], "exception_rate_by_environment": [{"Environment": "Cloud", "Tests": 792, "NonPass": 78, "ExceptionRatePct": 9.8}, {"Environment": "Hybrid", "Tests": 132, "NonPass": 16, "ExceptionRatePct": 12.1}, {"Environment": "On-Prem", "Tests": 396, "NonPass": 79, "ExceptionRatePct": 19.9}], "heatmap": [{"SystemName": "AWS Cloud Infrastructure", "CategoryName": "Access Management", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "AWS Cloud Infrastructure", "CategoryName": "Backup & Recovery", "Tests": 25, "NonPass": 1, "ExceptionRatePct": 4.0}, {"SystemName": "AWS Cloud Infrastructure", "CategoryName": "Change Management", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "AWS Cloud Infrastructure", "CategoryName": "Encryption & Data Protection", "Tests": 5, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "AWS Cloud Infrastructure", "CategoryName": "Incident Response & Monitoring", "Tests": 25, "NonPass": 2, "ExceptionRatePct": 8.0}, {"SystemName": "AWS Cloud Infrastructure", "CategoryName": "Logical Security & Authentication", "Tests": 9, "NonPass": 1, "ExceptionRatePct": 11.1}, {"SystemName": "AWS Cloud Infrastructure", "CategoryName": "Segregation of Duties", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "AWS Cloud Infrastructure", "CategoryName": "Vendor & Third-Party Oversight", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Active Directory / IAM", "CategoryName": "Access Management", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "Active Directory / IAM", "CategoryName": "Backup & Recovery", "Tests": 25, "NonPass": 3, "ExceptionRatePct": 12.0}, {"SystemName": "Active Directory / IAM", "CategoryName": "Change Management", "Tests": 25, "NonPass": 7, "ExceptionRatePct": 28.0}, {"SystemName": "Active Directory / IAM", "CategoryName": "Encryption & Data Protection", "Tests": 5, "NonPass": 1, "ExceptionRatePct": 20.0}, {"SystemName": "Active Directory / IAM", "CategoryName": "Incident Response & Monitoring", "Tests": 25, "NonPass": 5, "ExceptionRatePct": 20.0}, {"SystemName": "Active Directory / IAM", "CategoryName": "Logical Security & Authentication", "Tests": 9, "NonPass": 2, "ExceptionRatePct": 22.2}, {"SystemName": "Active Directory / IAM", "CategoryName": "Segregation of Duties", "Tests": 9, "NonPass": 2, "ExceptionRatePct": 22.2}, {"SystemName": "Active Directory / IAM", "CategoryName": "Vendor & Third-Party Oversight", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Enterprise Data Warehouse", "CategoryName": "Access Management", "Tests": 25, "NonPass": 1, "ExceptionRatePct": 4.0}, {"SystemName": "Enterprise Data Warehouse", "CategoryName": "Backup & Recovery", "Tests": 25, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Enterprise Data Warehouse", "CategoryName": "Change Management", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "Enterprise Data Warehouse", "CategoryName": "Encryption & Data Protection", "Tests": 5, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Enterprise Data Warehouse", "CategoryName": "Incident Response & Monitoring", "Tests": 25, "NonPass": 1, "ExceptionRatePct": 4.0}, {"SystemName": "Enterprise Data Warehouse", "CategoryName": "Logical Security & Authentication", "Tests": 9, "NonPass": 1, "ExceptionRatePct": 11.1}, {"SystemName": "Enterprise Data Warehouse", "CategoryName": "Segregation of Duties", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Enterprise Data Warehouse", "CategoryName": "Vendor & Third-Party Oversight", "Tests": 9, "NonPass": 1, "ExceptionRatePct": 11.1}, {"SystemName": "Oracle Production DB", "CategoryName": "Access Management", "Tests": 25, "NonPass": 6, "ExceptionRatePct": 24.0}, {"SystemName": "Oracle Production DB", "CategoryName": "Backup & Recovery", "Tests": 25, "NonPass": 7, "ExceptionRatePct": 28.0}, {"SystemName": "Oracle Production DB", "CategoryName": "Change Management", "Tests": 25, "NonPass": 5, "ExceptionRatePct": 20.0}, {"SystemName": "Oracle Production DB", "CategoryName": "Encryption & Data Protection", "Tests": 5, "NonPass": 1, "ExceptionRatePct": 20.0}, {"SystemName": "Oracle Production DB", "CategoryName": "Incident Response & Monitoring", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "Oracle Production DB", "CategoryName": "Logical Security & Authentication", "Tests": 9, "NonPass": 1, "ExceptionRatePct": 11.1}, {"SystemName": "Oracle Production DB", "CategoryName": "Segregation of Duties", "Tests": 9, "NonPass": 2, "ExceptionRatePct": 22.2}, {"SystemName": "Oracle Production DB", "CategoryName": "Vendor & Third-Party Oversight", "Tests": 9, "NonPass": 2, "ExceptionRatePct": 22.2}, {"SystemName": "Payroll System (ADP)", "CategoryName": "Access Management", "Tests": 25, "NonPass": 3, "ExceptionRatePct": 12.0}, {"SystemName": "Payroll System (ADP)", "CategoryName": "Backup & Recovery", "Tests": 25, "NonPass": 2, "ExceptionRatePct": 8.0}, {"SystemName": "Payroll System (ADP)", "CategoryName": "Change Management", "Tests": 25, "NonPass": 7, "ExceptionRatePct": 28.0}, {"SystemName": "Payroll System (ADP)", "CategoryName": "Encryption & Data Protection", "Tests": 5, "NonPass": 2, "ExceptionRatePct": 40.0}, {"SystemName": "Payroll System (ADP)", "CategoryName": "Incident Response & Monitoring", "Tests": 25, "NonPass": 1, "ExceptionRatePct": 4.0}, {"SystemName": "Payroll System (ADP)", "CategoryName": "Logical Security & Authentication", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Payroll System (ADP)", "CategoryName": "Segregation of Duties", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Payroll System (ADP)", "CategoryName": "Vendor & Third-Party Oversight", "Tests": 9, "NonPass": 3, "ExceptionRatePct": 33.3}, {"SystemName": "SAP ERP (Finance)", "CategoryName": "Access Management", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "SAP ERP (Finance)", "CategoryName": "Backup & Recovery", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "SAP ERP (Finance)", "CategoryName": "Change Management", "Tests": 25, "NonPass": 8, "ExceptionRatePct": 32.0}, {"SystemName": "SAP ERP (Finance)", "CategoryName": "Encryption & Data Protection", "Tests": 5, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "SAP ERP (Finance)", "CategoryName": "Incident Response & Monitoring", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "SAP ERP (Finance)", "CategoryName": "Logical Security & Authentication", "Tests": 9, "NonPass": 3, "ExceptionRatePct": 33.3}, {"SystemName": "SAP ERP (Finance)", "CategoryName": "Segregation of Duties", "Tests": 9, "NonPass": 1, "ExceptionRatePct": 11.1}, {"SystemName": "SAP ERP (Finance)", "CategoryName": "Vendor & Third-Party Oversight", "Tests": 9, "NonPass": 3, "ExceptionRatePct": 33.3}, {"SystemName": "Salesforce CRM", "CategoryName": "Access Management", "Tests": 25, "NonPass": 2, "ExceptionRatePct": 8.0}, {"SystemName": "Salesforce CRM", "CategoryName": "Backup & Recovery", "Tests": 25, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Salesforce CRM", "CategoryName": "Change Management", "Tests": 25, "NonPass": 6, "ExceptionRatePct": 24.0}, {"SystemName": "Salesforce CRM", "CategoryName": "Encryption & Data Protection", "Tests": 5, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Salesforce CRM", "CategoryName": "Incident Response & Monitoring", "Tests": 25, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Salesforce CRM", "CategoryName": "Logical Security & Authentication", "Tests": 9, "NonPass": 1, "ExceptionRatePct": 11.1}, {"SystemName": "Salesforce CRM", "CategoryName": "Segregation of Duties", "Tests": 9, "NonPass": 4, "ExceptionRatePct": 44.4}, {"SystemName": "Salesforce CRM", "CategoryName": "Vendor & Third-Party Oversight", "Tests": 9, "NonPass": 2, "ExceptionRatePct": 22.2}, {"SystemName": "ServiceNow ITSM", "CategoryName": "Access Management", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "ServiceNow ITSM", "CategoryName": "Backup & Recovery", "Tests": 25, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "ServiceNow ITSM", "CategoryName": "Change Management", "Tests": 25, "NonPass": 5, "ExceptionRatePct": 20.0}, {"SystemName": "ServiceNow ITSM", "CategoryName": "Encryption & Data Protection", "Tests": 5, "NonPass": 1, "ExceptionRatePct": 20.0}, {"SystemName": "ServiceNow ITSM", "CategoryName": "Incident Response & Monitoring", "Tests": 25, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "ServiceNow ITSM", "CategoryName": "Logical Security & Authentication", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "ServiceNow ITSM", "CategoryName": "Segregation of Duties", "Tests": 9, "NonPass": 1, "ExceptionRatePct": 11.1}, {"SystemName": "ServiceNow ITSM", "CategoryName": "Vendor & Third-Party Oversight", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Treasury & Banking Portal", "CategoryName": "Access Management", "Tests": 25, "NonPass": 1, "ExceptionRatePct": 4.0}, {"SystemName": "Treasury & Banking Portal", "CategoryName": "Backup & Recovery", "Tests": 25, "NonPass": 1, "ExceptionRatePct": 4.0}, {"SystemName": "Treasury & Banking Portal", "CategoryName": "Change Management", "Tests": 25, "NonPass": 5, "ExceptionRatePct": 20.0}, {"SystemName": "Treasury & Banking Portal", "CategoryName": "Encryption & Data Protection", "Tests": 5, "NonPass": 1, "ExceptionRatePct": 20.0}, {"SystemName": "Treasury & Banking Portal", "CategoryName": "Incident Response & Monitoring", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "Treasury & Banking Portal", "CategoryName": "Logical Security & Authentication", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Treasury & Banking Portal", "CategoryName": "Segregation of Duties", "Tests": 9, "NonPass": 4, "ExceptionRatePct": 44.4}, {"SystemName": "Treasury & Banking Portal", "CategoryName": "Vendor & Third-Party Oversight", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Workday HCM", "CategoryName": "Access Management", "Tests": 25, "NonPass": 4, "ExceptionRatePct": 16.0}, {"SystemName": "Workday HCM", "CategoryName": "Backup & Recovery", "Tests": 25, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Workday HCM", "CategoryName": "Change Management", "Tests": 25, "NonPass": 6, "ExceptionRatePct": 24.0}, {"SystemName": "Workday HCM", "CategoryName": "Encryption & Data Protection", "Tests": 5, "NonPass": 0, "ExceptionRatePct": 0.0}, {"SystemName": "Workday HCM", "CategoryName": "Incident Response & Monitoring", "Tests": 25, "NonPass": 2, "ExceptionRatePct": 8.0}, {"SystemName": "Workday HCM", "CategoryName": "Logical Security & Authentication", "Tests": 9, "NonPass": 1, "ExceptionRatePct": 11.1}, {"SystemName": "Workday HCM", "CategoryName": "Segregation of Duties", "Tests": 9, "NonPass": 1, "ExceptionRatePct": 11.1}, {"SystemName": "Workday HCM", "CategoryName": "Vendor & Third-Party Oversight", "Tests": 9, "NonPass": 0, "ExceptionRatePct": 0.0}], "total_access_reviews": 8096, "distinct_orphan_users": 22, "orphan_by_system": [{"SystemName": "SAP ERP (Finance)", "OrphanCount": 18}, {"SystemName": "Oracle Production DB", "OrphanCount": 10}, {"SystemName": "Active Directory / IAM", "OrphanCount": 3}, {"SystemName": "Treasury & Banking Portal", "OrphanCount": 2}, {"SystemName": "AWS Cloud Infrastructure", "OrphanCount": 1}, {"SystemName": "Enterprise Data Warehouse", "OrphanCount": 1}, {"SystemName": "Salesforce CRM", "OrphanCount": 1}], "distinct_sod_users": 13, "sod_by_system": [{"SystemName": "SAP ERP (Finance)", "SoDCount": 29}, {"SystemName": "Treasury & Banking Portal", "SoDCount": 24}], "sla_scenarios": [{"SLA_Days": 15, "OnTimePct": 46.3, "BreachCount": 4349}, {"SLA_Days": 20, "OnTimePct": 59.8, "BreachCount": 3258}, {"SLA_Days": 25, "OnTimePct": 70.4, "BreachCount": 2395}, {"SLA_Days": 30, "OnTimePct": 77.8, "BreachCount": 1799}, {"SLA_Days": 35, "OnTimePct": 83.4, "BreachCount": 1344}, {"SLA_Days": 40, "OnTimePct": 87.9, "BreachCount": 982}, {"SLA_Days": 45, "OnTimePct": 90.8, "BreachCount": 748}], "sla_by_environment": [{"Environment": "Cloud", "N": 5189, "OnTimePct_at30": 88.3, "OnTimePct_at15": 56.8, "PtDropIfTightenedTo15": 31.6}, {"Environment": "Hybrid", "N": 521, "OnTimePct_at30": 69.9, "OnTimePct_at15": 35.9, "PtDropIfTightenedTo15": 34.0}, {"Environment": "On-Prem", "N": 2386, "OnTimePct_at30": 56.5, "OnTimePct_at15": 25.7, "PtDropIfTightenedTo15": 30.8}], "sla_tighten": {"breach_count_at_30": 1799, "breach_count_at_15": 4349, "incremental_backlog": 2550, "incremental_backlog_pct_of_total": 31.5}, "total_vendors": 25, "vendors_overdue": 5, "high_tier_vendors": 13, "high_tier_overdue": 5, "vendors_open_findings": 16, "vendors_critical_findings": 13, "vendor_by_category": [{"ServiceCategory": "Payroll Processing", "Vendors": 3, "AvgOpenFindings": 4.33, "OverdueCount": 2}, {"ServiceCategory": "Data Processing / Analytics", "Vendors": 3, "AvgOpenFindings": 2.33, "OverdueCount": 0}, {"ServiceCategory": "Payment Processing", "Vendors": 3, "AvgOpenFindings": 2.33, "OverdueCount": 1}, {"ServiceCategory": "Professional Services / Consulting", "Vendors": 3, "AvgOpenFindings": 1.67, "OverdueCount": 0}, {"ServiceCategory": "Cloud Hosting", "Vendors": 4, "AvgOpenFindings": 1.0, "OverdueCount": 2}, {"ServiceCategory": "SaaS Application", "Vendors": 3, "AvgOpenFindings": 1.0, "OverdueCount": 0}, {"ServiceCategory": "Facilities / Physical Security", "Vendors": 3, "AvgOpenFindings": 0.33, "OverdueCount": 0}, {"ServiceCategory": "Legal / Compliance Services", "Vendors": 3, "AvgOpenFindings": 0.0, "OverdueCount": 0}], "days_by_env": {"Cloud": [33, 11, 30, 8, 36, 4, 6, 38, 3, 17, 18, 20, 2, 10, 4, 16, 3, 5, 23, 9, 33, 21, 11, 26, 12, 22, 7, 27, 3, 5, 6, 8, 17, 13, 22, 29, 3, 32, 11, 10, 19, 16, 6, 25, 22, 14, 24, 44, 6, 11, 11, 23, 8, 22, 9, 5, 14, 9, 15, 18, 3, 10, 14, 24, 22, 7, 12, 19, 11, 7, 13, 17, 6, 20, 15, 21, 13, 40, 17, 22, 20, 14, 26, 19, 11, 17, 40, 21, 12, 11, 16, 25, 7, 23, 12, 14, 60, 21, 9, 11, 27, 17, 8, 8, 14, 10, 3, 16, 9, 10, 5, 36, 21, 42, 11, 21, 16, 8, 11, 21, 5, 27, 15, 24, 18, 3, 13, 27, 15, 14, 15, 2, 29, 1, 33, 10, 19, 2, 23, 20, 19, 2, 7, 18, 29, 6, 6, 17, 57, 8, 10, 9, 12, 7, 29, 9, 5, 53, 7, 9, 22, 10, 6, 8, 44, 20, 23, 16, 18, 10, 15, 13, 34, 26, 20, 27, 21, 6, 23, 29, 30, 5, 9, 8, 11, 19, 15, 15, 4, 9, 31, 29, 13, 23, 18, 25, 24, 14, 20, 14, 19, 11, 65, 4, 12, 20, 20, 11, 3, 5, 16, 2, 21, 30, 24, 27, 2, 11, 6, 3, 10, 38, 44, 7, 15, 15, 16, 6, 16, 16, 16, 24, 5, 11, 24, 17, 34, 10, 10, 7, 50, 4, 23, 25, 24, 7, 12, 21, 9, 11, 9, 15, 7, 17, 5, 23, 42, 16, 10, 19, 26, 4, 9, 46, 26, 11, 23, 32, 12, 25, 22, 5, 12, 39, 46, 26, 9, 1, 8, 4, 41, 2, 5, 17, 14, 38, 22, 13, 32, 10, 40, 7, 14, 2, 27, 16, 40, 12, 4, 20, 9, 24, 7, 35, 15, 13, 34, 27, 8, 26, 23, 13, 25, 35, 14, 14, 13, 8, 13, 12, 12, 12, 5, 29, 9, 37, 6, 42, 11, 27, 16, 5, 5, 8, 10, 14, 18, 13, 18, 20, 12, 23, 26, 20, 21, 16, 31, 14, 8, 14, 5, 4, 26, 37, 11, 26, 12, 27, 34, 11, 3, 18, 31, 11, 21, 14, 10, 5, 38, 49, 15, 15, 22, 13, 22, 6, 4, 24, 11, 8, 25, 5, 3, 25, 23, 21, 31, 14, 38, 9, 23, 10, 15, 2, 13, 8, 11, 10, 21, 13, 7, 8, 8, 18, 2, 5, 18, 28, 28, 16, 25, 31, 11, 29, 3, 5, 11, 3, 22, 25, 21, 22, 12, 21, 13, 39, 14, 28, 10, 28, 46, 1, 7, 9, 12, 12, 4, 4, 9, 11, 10, 7, 4, 5, 9, 23, 30, 15, 5, 9, 2, 36, 8, 19, 28, 43, 25, 10, 20, 42, 8, 4, 7, 20, 10, 13, 22, 7, 13, 9, 40, 25, 10, 10, 44, 41, 19, 14, 5, 7, 4, 29, 5, 10, 2, 3, 23, 17, 14, 10, 3, 9, 12, 22, 28, 23, 17, 14, 16, 8, 15, 12, 55, 16, 2, 10, 11, 25, 18, 17, 33, 41, 23, 10, 10, 31, 10, 13, 29, 12, 23, 9, 15, 11, 10, 15, 5, 5, 14, 21, 22, 3, 11, 10, 34, 11, 11, 35, 35, 57, 16, 5, 20, 46, 38, 3, 7, 7, 3, 10, 3, 10, 15, 35, 7, 15, 8, 3, 35, 15, 19, 39, 10, 4, 7, 4, 29, 47, 15, 22, 27, 41, 14, 1, 10, 17, 27, 25, 12, 8, 13, 7, 9, 15, 9, 60, 8, 18, 24, 25, 9, 20, 18, 21, 15, 24, 16, 4, 16, 17, 16, 21, 22, 8, 5, 6, 31, 11, 10, 15, 13, 12, 15, 20, 25, 28, 7, 10, 7, 5, 30, 9, 18, 21, 19, 22, 19, 8, 11, 29, 9, 14, 20, 36, 27, 11, 38, 15, 13, 12, 11, 5, 24, 33, 9, 29, 59, 46, 32, 5, 5, 21, 14, 2, 10, 21, 12, 14, 5, 10, 22, 10, 14, 37, 6, 11, 8, 16, 6, 4, 7, 4, 12, 16, 3, 10, 27, 33, 23, 1, 15, 29, 9, 5, 28, 31, 13, 5, 3, 17, 8, 13, 12, 7, 3, 10, 15, 15, 11, 2, 36, 16, 2, 1, 13, 7, 7, 18, 40, 8, 37, 19, 17, 11, 10, 8, 37, 11, 19, 22, 22, 15, 36, 18, 8, 26, 2, 9, 6, 46, 29, 9, 4, 5, 24, 33, 11, 17, 13, 2, 10, 2, 9, 13, 21, 16, 24, 7, 30, 33, 2, 3, 13, 8, 10, 16, 25, 6, 28, 7, 50, 7, 9, 23, 26, 30, 21, 11, 10, 10, 5, 6, 27, 7, 5, 29, 15, 38, 35, 3, 13, 8, 28, 5, 5, 17, 11, 11, 50, 20, 10, 3, 10, 4, 6, 6, 26, 1, 7, 26, 18, 20, 31, 2, 7, 13, 27, 5, 10, 13, 7, 13, 11, 8, 22, 7, 17, 23, 20, 16, 3, 14, 31, 39, 17, 2, 17, 11, 3, 5, 6, 21, 37, 19, 21, 12, 8, 19, 16, 6, 15, 13, 9, 21, 25, 15, 17, 16, 3, 4, 38, 14, 8, 9, 41, 12, 32, 2, 27, 7, 22, 6, 9, 5, 23, 25, 7, 3, 32, 7, 11, 6, 21, 22, 36, 28, 26, 12, 11, 21, 12, 28, 5, 2, 19, 8, 5, 51, 13, 4, 7, 10, 19, 7, 11, 16, 18, 12, 41, 21, 6, 13, 20, 4, 5, 24, 4, 6, 25, 3, 13, 14, 32, 10, 19, 67, 29, 5, 22, 18, 10, 22, 5, 8, 11, 9, 21, 8, 19, 22, 2, 8, 11, 16, 24, 53, 38, 12, 12, 36, 13, 8, 26, 17, 3, 10, 4, 1, 42, 14, 10, 9, 13, 9, 6, 9, 33, 25, 9, 45, 12, 7, 17, 15, 15, 27, 23, 7, 21, 26, 27, 17, 16, 13, 14, 40, 14, 7, 17, 23, 26, 6, 35, 22, 34, 4, 28, 5, 11, 23, 16, 4, 11, 15, 14, 12, 8, 16, 19, 5, 10, 25, 2, 14, 9, 13, 37, 13, 11, 21, 17, 14, 17, 30, 24, 11, 35, 9, 14, 16, 10, 33, 10, 2, 38, 2, 6, 12, 21, 22, 7, 14, 12, 14, 15, 18, 8, 10, 51, 9, 14, 12, 14, 27, 11, 5, 8, 12, 15, 7, 14, 4, 5, 21, 10, 15, 21, 12, 19, 14, 14, 29, 11, 21, 4, 15, 34, 53, 4, 10, 6, 12, 24, 29, 30, 4, 13, 18, 26, 32, 17, 21, 26, 12, 6, 35, 30, 7, 14, 7, 16, 15, 13, 26, 3, 33, 29, 10, 24, 10, 39, 11, 19, 44, 20, 9, 4, 3, 18, 12, 5, 22, 22, 12, 34, 3, 10, 20, 5, 23, 28, 1, 42, 8, 8, 22, 22, 31, 32, 6, 3, 20, 15, 2, 3, 19, 12, 20, 5, 21, 17, 22, 9, 7, 3, 10, 27, 33, 5, 13, 37, 41, 10, 29, 26, 24, 2, 8, 12, 11, 12, 44, 10, 17, 17, 13, 5, 14, 1, 19, 1, 17, 8, 5, 22, 9, 13, 3, 34, 14, 14, 19, 1, 37, 10, 35, 10, 8, 18, 50, 29, 20, 18, 14, 34, 23, 3, 5, 20, 5, 14, 24, 18, 4, 6, 19, 46, 12, 25, 18, 8, 25, 2, 24, 19, 8, 5, 9, 7, 19, 25, 4, 18, 7, 2, 19, 18, 13, 26, 7, 21, 12, 12, 2, 26, 18, 20, 6, 16, 12, 18, 16, 39, 27, 9, 37, 6, 8, 25, 2, 13, 10, 38, 5, 6, 42, 11, 29, 9, 8, 30, 49, 32, 9, 13, 6, 7, 7, 9, 15, 13, 22, 15, 21, 23, 9, 12, 82, 8, 22, 4, 6, 12, 2, 15, 5, 13, 14, 12, 4, 7, 11, 15, 8, 2, 9, 39, 2, 6, 17, 15, 8, 12, 13, 8, 18, 15, 9, 4, 9, 8, 8, 3, 32, 31, 13, 65, 26, 15, 6, 13, 25, 21, 2, 3, 3, 18, 3, 5, 11, 28, 19, 10, 23, 47, 13, 4, 6, 6, 7, 10, 16, 3, 4, 20, 8, 6, 11, 31, 22, 21, 10, 23, 8, 15, 20, 6, 5, 13, 14, 22, 5, 7, 42, 25, 12, 28, 5, 11, 14, 10, 10, 21, 26, 9, 4, 3, 1, 2, 9, 22, 36, 32, 5, 3, 14, 13, 19, 7, 13, 12, 9, 2, 21, 14, 22, 26, 12, 21, 37, 45, 16, 17, 16, 19, 26, 15, 43, 39, 13, 13, 9, 20, 10, 8, 19, 5, 26, 20, 38, 16, 22, 12, 29, 2, 30, 27, 18, 26, 40, 34, 13, 9, 12, 4, 6, 4, 12, 69, 9, 4, 2, 3, 13, 11, 22, 4, 7, 47, 27, 12, 16, 44, 16, 27, 18, 2, 13, 20, 3, 10, 20, 11, 20, 23, 11, 13, 10, 7, 16, 14, 46, 13, 8, 16, 17, 67, 25, 10, 13, 3, 11, 16, 13, 11, 20, 4, 16, 1, 29, 12, 23, 1, 21, 7, 13, 21, 12, 19, 10, 31, 12, 12, 12, 13, 29, 15, 5, 3, 24, 35, 2, 24, 18, 7, 15, 5, 11, 13, 31, 11, 7, 17, 20, 7, 5, 6, 31, 19, 10, 27, 22, 6, 56, 15, 2, 36, 15, 11, 15, 15, 10, 54, 12, 6, 24, 53, 5, 27, 7, 3, 8, 31, 20, 23, 2, 5, 15, 26, 15, 14, 11, 15, 7, 23, 16, 31, 10, 20, 8, 6, 27, 1, 7, 38, 12, 3, 17, 9, 2, 15, 13, 13, 18, 4, 16, 14, 27, 7, 30, 23, 11, 13, 1, 20, 27, 15, 10, 7, 21, 4, 10, 9, 3, 12, 11, 5, 31, 22, 13, 24, 28, 32, 7, 24, 11, 15, 7, 27, 6, 4, 14, 37, 18, 4, 51, 16, 25, 3, 45, 9, 3, 15, 25, 20, 20, 12, 2, 1, 20, 5, 5, 7, 21, 27, 16, 11, 25, 27, 19, 27, 62, 22, 12, 17, 29, 9, 8, 16, 12, 6, 15, 33, 18, 5, 20, 10, 49, 19, 7, 4, 19, 5, 22, 4, 20, 23, 6, 8, 3, 27, 24, 8, 41, 22, 7, 15, 9, 19, 15, 23, 36, 22, 5, 14, 19, 20, 7, 12, 21, 5, 10, 24, 34, 12, 2, 10, 22, 6, 17, 12, 25, 38, 12, 27, 3, 79, 7, 41, 34, 31, 15, 14, 9, 28, 9, 22, 2, 18, 13, 46, 18, 29, 6, 9, 12, 5, 55, 6, 3, 4, 12, 21, 14, 4, 21, 2, 4, 8, 28, 14, 15, 4, 9, 25, 17, 22, 13, 25, 4, 11, 19, 3, 1, 43, 14, 2, 14, 4, 6, 29, 8, 8, 4, 10, 15, 5, 9, 11, 21, 18, 9, 35, 7, 3, 16, 17, 15, 30, 5, 1, 2, 4, 24, 10, 37, 4, 37, 25, 13, 7, 14, 1, 18, 20, 4, 30, 26, 16, 6, 21, 10, 15, 22, 3, 2, 36, 27, 14, 14, 12, 6, 43, 13, 6, 41, 19, 20, 47, 22, 8, 22, 6, 9, 17, 26, 8, 12, 12, 29, 14, 45, 9, 16, 16, 8, 29, 41, 23, 18, 13, 17, 18, 6, 28, 10, 36, 15, 28, 23, 4, 34, 7, 9, 10, 3, 16, 29, 36, 12, 14, 24, 12, 31, 13, 6, 16, 3, 16, 18, 7, 18, 11, 7, 3, 4, 39, 11, 18, 12, 40, 7, 14, 9, 28, 18, 52, 12, 6, 3, 4, 14, 28, 17, 3, 14, 34, 10, 17, 11, 20, 7, 1, 5, 19, 6, 1, 10, 8, 2, 10, 30, 16, 29, 18, 2, 1, 9, 25, 9, 8, 3, 14, 3, 30, 16, 13, 14, 17, 10, 11, 44, 28, 21, 9, 2, 20, 14, 11, 13, 4, 6, 28, 1, 25, 36, 2, 15, 20, 36, 16, 6, 9, 2, 10, 13, 19, 23, 19, 6, 4, 22, 2, 48, 5, 9, 11, 19, 18, 15, 25, 18, 18, 5, 27, 24, 15, 24, 13, 37, 14, 12, 18, 43, 8, 9, 18, 32, 6, 14, 6, 42, 32, 20, 20, 7, 35, 10, 8, 29, 10, 8, 24, 4, 20, 14, 23, 19, 61, 16, 10, 13, 18, 41, 21, 7, 119, 27, 6, 5, 4, 15, 24, 2, 15, 45, 19, 4, 10, 19, 8, 16, 16, 13, 4, 7, 48, 9, 10, 10, 24, 11, 13, 15, 26, 13, 14, 8, 3, 8, 10, 3, 14, 8, 44, 16, 10, 6, 12, 36, 11, 13, 28, 16, 23, 17, 21, 9, 2, 19, 8, 10, 4, 31, 10, 13, 8, 16, 16, 21, 61, 17, 15, 6, 5, 9, 3, 11, 31, 17, 19, 22, 10, 7, 26, 15, 2, 15, 21, 27, 16, 19, 39, 25, 10, 11, 29, 16, 14, 10, 28, 55, 12, 1, 16, 10, 7, 14, 16, 12, 12, 9, 22, 8, 16, 18, 14, 12, 2, 25, 4, 10, 17, 3, 8, 14, 11, 17, 12, 2, 5, 13, 28, 24, 69, 9, 23, 22, 37, 31, 16, 20, 17, 13, 19, 15, 14, 39, 16, 14, 12, 11, 5, 13, 29, 8, 1, 19, 15, 14, 7, 13, 15, 20, 13, 48, 4, 9, 7, 10, 17, 16, 20, 14, 15, 14, 9, 12, 2, 6, 16, 4, 25, 3, 11, 21, 5, 4, 18, 23, 11, 9, 3, 14, 2, 32, 12, 6, 8, 15, 9, 13, 5, 28, 8, 1, 10, 7, 26, 6, 9, 15, 20, 33, 6, 31, 26, 7, 6, 17, 13, 17, 10, 14, 12, 17, 6, 14, 33, 31, 16, 6, 43, 17, 40, 18, 1, 43, 23, 13, 2, 25, 17, 51, 38, 40, 15, 15, 18, 8, 14, 12, 30, 34, 21, 7, 45, 25, 4, 11, 17, 15, 18, 10, 16, 21, 20, 10, 23, 6, 8, 25, 22, 11, 8, 9, 21, 12, 16, 12, 7, 13, 2, 35, 15, 8, 36, 19, 22, 4, 15, 4, 7, 46, 6, 21, 6, 7, 65, 12, 4, 22, 30, 8, 16, 15, 10, 13, 14, 25, 13, 9, 11, 40, 6, 11, 11, 12, 5, 11, 9, 16, 28, 17, 14, 18, 15, 13, 24, 10, 5, 8, 7, 47, 29, 14, 8, 24, 14, 11, 14, 11, 18, 4, 18, 11, 25, 29, 33, 50, 15, 4, 15, 7, 12, 13, 7, 10, 7, 2, 14, 32, 7, 43, 49, 9, 11, 9, 9, 12, 7, 17, 9, 11, 27, 5, 33, 18, 32, 22, 25, 14, 5, 8, 7, 2, 27, 12, 6, 48, 62, 4, 11, 11, 6, 27, 2, 40, 14, 46, 13, 8, 11, 6, 34, 22, 16, 10, 9, 19, 16, 29, 9, 8, 22, 25, 59, 3, 35, 15, 9, 19, 18, 9, 3, 35, 8, 7, 8, 24, 10, 8, 18, 16, 8, 3, 24, 16, 2, 39, 2, 7, 7, 9, 8, 5, 15, 26, 15, 17, 11, 15, 18, 22, 8, 38, 10, 6, 19, 8, 34, 15, 8, 8, 18, 11, 10, 23, 37, 21, 7, 5, 22, 21, 10, 12, 8, 5, 8, 1, 30, 4, 9, 7, 7, 29, 12, 8, 17, 16, 24, 18, 12, 13, 18, 6, 16, 37, 14, 10, 22, 22, 15, 4, 4, 14, 14, 7, 7, 12, 51, 6, 10, 24, 21, 16, 2, 11, 42, 7, 6, 35, 12, 2, 5, 8, 16, 11, 6, 11, 7, 43, 5, 9, 8, 8, 20, 27, 33, 9, 8, 15, 11, 20, 15, 14, 22, 28, 3, 15, 4, 22, 26, 6, 7, 13, 14, 10, 4, 13, 7, 2, 20, 3, 10, 12, 31, 3, 22, 24, 37, 28, 12, 23, 32, 2, 4, 16, 24, 20, 17, 23, 32, 5, 8, 11, 3, 17, 16, 15, 11, 30, 9, 28, 8, 5, 12, 14, 18, 1, 10, 44, 8, 24, 73, 49, 5, 23, 24, 20, 5, 15, 15, 4, 10, 16, 12, 4, 30, 7, 26, 5, 3, 11, 15, 52, 15, 18, 29, 8, 26, 12, 10, 14, 1, 2, 2, 18, 11, 8, 13, 26, 12, 5, 10, 6, 11, 17, 32, 6, 17, 17, 20, 10, 20, 23, 10, 16, 12, 7, 4, 8, 17, 8, 9, 25, 47, 14, 8, 18, 12, 17, 15, 15, 2, 9, 8, 8, 21, 5, 2, 8, 7, 14, 7, 11, 10, 31, 7, 20, 12, 26, 37, 12, 3, 5, 4, 9, 8, 15, 24, 2, 13, 7, 13, 9, 6, 12, 13, 43, 27, 10, 38, 33, 6, 50, 9, 14, 30, 2, 12, 16, 26, 13, 2, 43, 13, 17, 3, 32, 9, 7, 28, 4, 17, 7, 18, 22, 9, 31, 13, 43, 6, 13, 17, 33, 30, 20, 18, 13, 16, 11, 10, 7, 18, 2, 20, 20, 27, 78, 11, 36, 5, 23, 8, 5, 18, 18, 19, 32, 21, 34, 10, 16, 17, 24, 10, 21, 31, 13, 6, 32, 22, 4, 13, 44, 20, 14, 6, 6, 23, 6, 17, 13, 17, 12, 19, 26, 12, 25, 35, 17, 23, 5, 12, 22, 10, 8, 38, 10, 2, 31, 2, 31, 3, 4, 5, 9, 32, 5, 19, 16, 14, 28, 15, 16, 23, 9, 14, 17, 26, 12, 14, 22, 23, 14, 6, 30, 10, 1, 17, 10, 35, 29, 14, 8, 8, 4, 17, 19, 25, 9, 5, 19, 19, 14, 12, 19, 5, 17, 37, 8, 11, 31, 14, 24, 18, 19, 34, 58, 32, 9, 6, 9, 20, 10, 8, 36, 10, 19, 18, 2, 35, 5, 3, 9, 7, 21, 4, 10, 11, 13, 4, 30, 7, 32, 65, 22, 9, 25, 7, 12, 7, 22, 21, 8, 28, 35, 9, 18, 36, 17, 10, 13, 9, 29, 27, 7, 8, 3, 20, 5, 19, 5, 15, 15, 13, 18, 12, 22, 13, 30, 15, 29, 7, 17, 12, 7, 13, 14, 3, 28, 33, 7, 44, 12, 8, 8, 42, 5, 15, 16, 9, 7, 8, 27, 6, 12, 5, 14, 9, 19, 20, 37, 55, 8, 22, 9, 20, 19, 19, 23, 15, 10, 14, 52, 8, 10, 7, 18, 13, 27, 23, 16, 17, 11, 5, 21, 16, 7, 7, 12, 11, 34, 12, 6, 14, 13, 3, 16, 10, 8, 24, 2, 13, 1, 20, 24, 15, 9, 34, 35, 18, 39, 7, 15, 17, 3, 22, 6, 9, 19, 9, 5, 23, 16, 8, 26, 9, 31, 8, 4, 35, 8, 9, 4, 12, 5, 33, 10, 6, 14, 54, 14, 11, 13, 23, 22, 16, 27, 14, 11, 14, 8, 24, 8, 2, 3, 17, 7, 22, 13, 24, 2, 8, 6, 16, 26, 17, 9, 4, 40, 17, 45, 19, 42, 7, 7, 11, 6, 3, 8, 19, 4, 5, 8, 6, 8, 12, 5, 8, 13, 6, 4, 7, 10, 3, 19, 10, 7, 3, 17, 15, 21, 22, 14, 14, 31, 29, 11, 41, 7, 25, 7, 16, 13, 9, 20, 23, 7, 13, 22, 1, 17, 22, 18, 18, 12, 21, 4, 6, 18, 21, 28, 37, 7, 5, 24, 9, 12, 22, 15, 21, 6, 16, 16, 28, 26, 34, 32, 33, 4, 13, 16, 14, 21, 5, 3, 2, 26, 4, 14, 8, 8, 11, 8, 3, 11, 7, 6, 40, 3, 11, 15, 40, 5, 31, 11, 11, 20, 34, 8, 16, 14, 14, 23, 7, 9, 3, 19, 13, 34, 5, 44, 21, 21, 8, 10, 9, 30, 2, 11, 12, 9, 6, 1, 12, 19, 13, 6, 12, 34, 7, 15, 16, 4, 10, 10, 13, 29, 4, 30, 20, 45, 2, 61, 3, 6, 6, 19, 11, 7, 39, 1, 25, 12, 7, 8, 10, 6, 23, 9, 20, 8, 15, 15, 13, 31, 33, 22, 27, 21, 9, 11, 2, 30, 5, 18, 7, 37, 36, 17, 17, 22, 19, 24, 5, 13, 7, 35, 4, 39, 13, 10, 5, 20, 18, 22, 26, 26, 64, 12, 15, 12, 18, 2, 17, 6, 24, 2, 19, 6, 30, 3, 13, 21, 16, 16, 4, 4, 16, 14, 5, 5, 12, 9, 44, 31, 23, 34, 7, 8, 28, 13, 14, 4, 27, 19, 10, 8, 31, 7, 3, 32, 32, 7, 49, 12, 7, 19, 4, 6, 16, 14, 25, 4, 5, 31, 29, 16, 46, 7, 14, 18, 4, 21, 22, 18, 30, 8, 43, 14, 3, 4, 6, 31, 31, 52, 6, 12, 2, 7, 3, 8, 16, 6, 20, 8, 17, 5, 23, 51, 4, 25, 14, 12, 23, 21, 30, 4, 30, 16, 3, 9, 15, 9, 11, 8, 68, 20, 13, 5, 30, 18, 6, 6, 11, 13, 20, 12, 21, 9, 9, 61, 5, 12, 32, 43, 18, 30, 11, 1, 28, 12, 10, 9, 21, 21, 13, 18, 5, 11, 5, 5, 16, 13, 9, 10, 17, 25, 27, 20, 22, 9, 6, 5, 17, 13, 1, 33, 22, 28, 6, 38, 12, 29, 17, 23, 18, 9, 3, 31, 1, 25, 31, 4, 9, 3, 8, 27, 23, 21, 9, 1, 4, 19, 4, 9, 12, 16, 17, 19, 8, 2, 11, 12, 2, 8, 15, 9, 14, 8, 20, 6, 13, 13, 24, 10, 38, 37, 6, 13, 4, 18, 9, 14, 10, 67, 11, 11, 25, 28, 16, 28, 59, 10, 4, 17, 27, 36, 20, 13, 7, 31, 16, 2, 47, 5, 27, 19, 1, 9, 10, 13, 3, 2, 5, 18, 9, 5, 42, 10, 13, 31, 14, 19, 6, 14, 39, 17, 16, 11, 4, 28, 12, 7, 4, 16, 5, 29, 8, 14, 17, 16, 24, 8, 13, 20, 36, 23, 26, 10, 17, 33, 7, 3, 15, 39, 6, 7, 23, 11, 22, 29, 10, 11, 15, 7, 9, 21, 13, 12, 11, 5, 15, 7, 3, 5, 11, 20, 24, 4, 19, 41, 25, 14, 15, 14, 9, 26, 43, 11, 7, 15, 5, 9, 31, 11, 18, 32, 11, 6, 20, 4, 6, 3, 31, 14, 21, 27, 6, 8, 14, 13, 21, 13, 41, 9, 12, 11, 37, 25, 8, 13, 10, 2, 9, 9, 7, 9, 10, 18, 8, 31, 6, 28, 16, 4, 10, 38, 6, 39, 19, 16, 49, 16, 30, 20, 52, 14, 13, 29, 29, 11, 19, 22, 21, 18, 2, 22, 22, 18, 10, 35, 6, 29, 6, 27, 6, 17, 14, 11, 40, 21, 1, 18, 3, 16, 4, 21, 3, 6, 25, 14, 4, 38, 10, 12, 12, 23, 11, 13, 31, 28, 12, 12, 2, 3, 22, 18, 11, 33, 8, 1, 23, 26, 8, 5, 2, 14, 18, 27, 19, 9, 48, 2, 11, 13, 14, 8, 3, 12, 13, 18, 14, 7, 7, 11, 11, 11, 19, 28, 23, 21, 6, 31, 7, 17, 20, 32, 44, 10, 16, 30, 47, 11, 7, 4, 3, 8, 18, 20, 23, 3, 31, 13, 45, 26, 7, 8, 45, 20, 7, 60, 17, 56, 38, 18, 3, 30, 7, 8, 12, 14, 18, 29, 28, 7, 6, 12, 55, 21, 13, 14, 8, 14, 8, 3, 20, 9, 10, 13, 22, 18, 17, 1, 28, 43, 17, 6, 10, 6, 40, 10, 17, 12, 21, 7, 17, 10, 31, 2, 11, 5, 15, 11, 11, 21, 18, 11, 27, 21, 6, 6, 39, 12, 18, 4, 6, 43, 6, 18, 1, 4, 11, 26, 14, 12, 22, 17, 3, 14, 10, 12, 9, 14, 19, 4, 8, 22, 24, 36, 15, 8, 8, 14, 6, 34, 1, 20, 18, 14, 23, 24, 22, 33, 45, 10, 16, 7, 28, 18, 12, 14, 10, 6, 16, 23, 41, 2, 18, 11, 2, 8, 22, 20, 15, 7, 34, 5, 10, 12, 13, 57, 38, 19, 14, 14, 19, 9, 12, 19, 20, 6, 13, 16, 30, 32, 5, 14, 8, 19, 55, 27, 20, 24, 37, 26, 5, 43, 15, 18, 32, 53, 10, 31, 10, 17, 4, 10, 17, 21, 20, 28, 11, 13, 14, 11, 7, 15, 25, 18, 10, 16, 10, 21, 26, 26, 12, 10, 28, 12, 15, 18, 14, 23, 4, 20, 8, 11, 16, 3, 13, 11, 13, 11, 15, 10, 14, 16, 14, 12, 26, 8, 23, 8, 39, 7, 10, 26, 14, 10, 14, 25, 14, 5, 15, 2, 16, 12, 9, 18, 16, 17, 5, 25, 3, 8, 9, 14, 20, 6, 17, 36, 10, 26, 3, 5, 6, 33, 2, 11, 16, 43, 22, 19, 5, 14, 32, 2, 19, 17, 5, 37, 13, 30, 22, 33, 5, 9, 18, 18, 22, 25, 18, 1, 41, 22, 11, 39, 18, 8, 25, 12, 24, 4, 9, 16, 3, 7, 27, 23, 4, 17, 2, 21, 8, 11, 14, 5, 7, 40, 11, 15, 15, 32, 24, 5, 35, 44, 5, 19, 34, 14, 3, 15, 2, 18, 30, 13, 11, 23, 17, 22, 55, 9, 19, 36, 36, 20, 11, 22, 22, 25, 5, 43, 36, 13, 33, 12, 39, 15, 6, 14, 6, 1, 23, 5, 6, 12, 12, 7, 35, 4, 3, 22, 17, 9, 6, 7, 9, 20, 16, 10, 10, 22, 7, 3, 33, 10, 47, 9, 13, 6, 16, 10, 11, 15, 9, 17, 13, 4, 24, 15, 7, 8, 33, 4, 47, 23, 6, 8, 10, 24, 6, 20, 20, 25, 11, 35, 13, 20, 19, 13, 25, 21, 25, 1, 1, 20, 8, 21, 25, 8, 12, 10, 8, 15, 23, 7, 7, 8, 19, 25, 10, 2, 5, 9, 6, 4, 13, 58, 5, 15, 19, 20, 12, 4, 23, 3, 11, 10, 4, 8, 19, 11, 3, 21, 40, 4, 12, 12, 4, 29, 13, 24, 16, 29, 16, 9, 18, 6, 20, 5, 12, 10, 15, 32, 8, 2, 17, 6, 9, 28, 19, 19, 49, 1, 6, 10, 7, 24, 11, 5, 16, 18, 5, 11, 18, 30, 7, 20, 8, 14, 6, 19, 26, 12, 11, 10, 4, 22, 29, 7, 15, 19, 8, 34, 15, 3, 27, 12, 9, 21, 8, 32, 28, 36, 47, 19, 13, 8, 20, 46, 4, 16, 3, 3, 30, 26, 8, 5, 36, 5, 4, 6, 18, 51, 8, 29, 14, 8, 10, 31, 48, 24, 16, 24, 8, 14, 3, 8, 18, 15, 1, 11, 15, 15, 4, 22, 43, 24, 14, 37, 8, 20, 13, 37, 7, 26, 38, 4, 27, 14, 12, 8, 11, 14, 5, 2, 3, 18, 35, 21, 12, 48, 24, 17, 10, 36, 11, 7, 13, 15, 25, 7, 12, 7, 24, 34, 78, 20, 3, 6, 19, 7, 31, 4, 23, 4, 15, 9, 6, 16, 30, 8, 1, 12, 6, 25, 9, 8, 10, 20, 11, 29, 18, 35, 42, 19, 34, 34, 16, 34, 13, 13, 5, 17, 33, 13, 5, 28, 20, 46, 7, 23, 5, 14, 16, 3, 31, 26, 20, 5, 8, 28, 14, 12, 34, 16, 5, 28, 5, 14, 17, 24, 4, 1, 1, 37, 3, 43, 30, 6, 2, 15, 9, 34, 17, 14, 12, 24, 13, 49, 3, 11, 1, 19, 7, 11, 13, 5, 7, 25, 25, 27, 41, 11, 57, 16, 15, 6, 11, 17, 21, 21, 10, 36, 15, 14, 5, 23, 14, 9, 6, 13, 20, 1, 10, 12, 11, 3, 46, 20, 21, 29, 4, 15, 42, 42, 10, 41, 11, 18, 3, 35, 11, 4, 13, 1, 22, 31, 6, 5, 21, 23, 8, 6, 27, 16, 8, 5, 23, 7, 7, 15, 17, 5, 20, 7, 4, 11, 11, 19, 47, 15, 21, 3, 31, 12, 4, 30, 13, 27, 51, 3, 7, 18, 8, 8, 33, 11, 18, 25, 14, 33, 23, 20, 14, 7, 9, 5, 2, 31, 24, 28, 39, 6, 3, 16, 12, 63, 5, 47, 12, 5, 42, 6, 28, 16, 47, 32, 12, 8, 29, 11, 21, 33, 40, 17, 2, 2, 28, 6, 11, 31, 9, 4, 11, 25, 9, 22, 4, 7, 11, 34, 10, 9, 9, 22, 26, 33, 52, 18, 8, 13, 6, 16, 7, 33, 17, 40, 26, 24, 4, 22, 52, 10, 30, 3, 5, 13, 9, 7, 9, 20, 30, 29, 1, 11, 14, 21, 46, 18, 3, 23, 45, 17, 6, 9, 46, 35, 8, 5, 6, 32, 10, 3, 9, 18, 13, 35, 18, 20, 12, 20, 5, 7, 15, 6, 23, 21, 8, 8, 16, 4, 18, 26, 21, 10, 25, 23, 24, 36, 20, 6, 7, 20, 13, 11, 22, 29, 6, 35, 4, 45, 16, 4, 11, 29, 21, 6, 22, 12, 15, 29, 20, 22, 22, 9, 24, 7, 12, 10, 42, 8, 23, 20, 5, 33, 36, 17, 15, 3, 4, 12, 7, 18, 17, 7, 30, 5, 11, 5, 59, 15, 6, 10, 18, 27, 7, 37, 15, 21, 10, 18, 2, 13, 27, 45, 14, 7, 7, 13, 23, 8, 9, 5, 27, 15, 26, 29, 8, 24, 16, 9, 8, 14, 17, 28, 38, 29, 12, 5, 7, 38, 15, 17, 26, 14, 32, 4, 20, 45, 34, 35, 10, 6, 30, 14, 17, 10, 60, 15, 31, 11, 21, 12, 27, 9, 5, 17, 29, 13, 18, 4, 13, 18, 32, 30, 13, 15, 16, 15, 13, 39, 8, 26, 23, 13, 7, 14, 21, 1, 5, 1, 17, 17, 6, 7, 16, 7, 47, 6, 10, 34, 3, 12, 20, 13, 2, 5, 2, 12, 18, 8, 10, 10, 31, 11, 6, 25, 21, 11, 11, 9, 32, 12, 6, 5, 2, 8, 13, 13, 2, 16, 6, 10, 22, 13, 18, 13, 5, 1, 21, 15, 20, 23, 20, 18, 11, 31, 5, 34, 22, 8, 14, 35, 52, 7, 25, 7, 5, 12, 27, 11, 27, 29, 9, 9, 11, 14, 13, 15, 10, 5, 46, 8, 3, 23, 6, 21, 8, 52, 35, 12, 20, 17, 8, 22, 15, 16, 21, 13, 7, 20, 24, 24, 24, 18, 3, 53, 24, 10, 26, 5, 21, 11, 5, 5, 19, 21, 6, 11, 18, 9, 47, 19, 13, 29, 20, 18, 19, 24, 8, 2, 30, 15, 10, 7, 6, 16, 14, 29, 21, 24, 28, 17, 38, 8, 28, 2, 2, 5, 33, 38, 15, 18, 12, 2, 14, 13, 10, 2, 8, 13, 9, 16, 2, 7, 22, 19, 5, 18, 12, 28, 14, 36, 42, 35, 1, 17, 10, 12, 25, 11, 14, 15, 2, 10, 29, 1, 20, 6, 10, 23, 5, 11, 3, 18, 7, 4, 14, 3, 10, 7, 16, 16, 27, 42, 9, 7, 19, 9, 21, 16, 6, 19, 6, 36, 12, 7, 16, 18, 9, 8, 3, 26, 35, 28, 7, 19, 17, 3, 9, 18, 1, 5, 24, 7, 3, 27, 7, 24, 5, 10, 24, 12, 23, 10, 15, 29, 10, 16, 20, 1, 19, 7, 18, 1, 22, 21, 28, 3, 47, 4, 16, 10, 11, 16, 35, 12, 2, 16, 13, 8, 18, 8, 12, 16, 17, 19, 21, 15, 3, 17, 12, 36, 20, 11, 9, 2, 27, 3, 35, 7, 7, 47, 25, 15, 44, 13, 9, 16, 28, 4, 7, 6, 5, 12, 5, 2, 7, 7, 19, 27, 8, 7, 46, 26, 18, 10, 19, 9, 9, 31, 14, 7, 35, 33, 14, 7, 8, 25, 5, 9, 5, 15, 5, 18, 14, 17, 9, 17, 3, 12, 19, 12, 8], "Hybrid": [19, 26, 13, 62, 30, 11, 53, 20, 40, 4, 37, 10, 44, 45, 20, 19, 6, 23, 21, 24, 16, 51, 17, 23, 35, 101, 36, 50, 48, 16, 12, 57, 15, 33, 4, 3, 19, 55, 12, 31, 14, 28, 15, 23, 17, 10, 29, 27, 18, 23, 13, 20, 15, 24, 11, 15, 19, 25, 20, 20, 29, 22, 41, 11, 7, 24, 20, 19, 5, 29, 31, 58, 34, 7, 25, 21, 17, 26, 9, 31, 21, 3, 11, 4, 4, 7, 47, 47, 11, 5, 24, 2, 28, 9, 43, 40, 32, 24, 51, 24, 26, 9, 52, 12, 14, 18, 33, 25, 12, 26, 26, 40, 13, 31, 20, 15, 20, 61, 34, 29, 13, 13, 43, 4, 15, 47, 28, 12, 4, 7, 34, 3, 30, 53, 2, 33, 21, 29, 40, 5, 40, 4, 5, 24, 26, 14, 3, 2, 58, 26, 18, 5, 56, 54, 4, 7, 25, 37, 45, 10, 18, 27, 44, 3, 11, 9, 34, 11, 18, 36, 21, 53, 8, 35, 5, 9, 16, 2, 56, 19, 42, 31, 25, 20, 5, 91, 7, 67, 36, 25, 45, 25, 30, 4, 45, 4, 14, 8, 12, 19, 11, 18, 13, 10, 32, 23, 53, 16, 18, 4, 9, 15, 25, 37, 71, 23, 59, 13, 11, 35, 8, 12, 19, 16, 19, 5, 54, 14, 5, 15, 20, 76, 12, 22, 10, 19, 31, 22, 31, 20, 12, 37, 25, 16, 8, 4, 56, 15, 30, 4, 14, 8, 11, 9, 55, 12, 33, 13, 14, 27, 9, 13, 37, 24, 28, 41, 17, 47, 13, 10, 10, 32, 60, 5, 8, 18, 17, 36, 43, 81, 4, 31, 31, 25, 20, 18, 21, 8, 25, 11, 13, 40, 13, 6, 56, 30, 7, 19, 18, 29, 18, 31, 48, 4, 10, 13, 22, 14, 44, 71, 15, 22, 14, 6, 20, 34, 18, 10, 30, 14, 33, 20, 6, 36, 23, 31, 7, 16, 3, 6, 15, 13, 15, 29, 41, 23, 25, 4, 19, 16, 5, 30, 40, 21, 16, 42, 66, 66, 57, 23, 14, 20, 45, 35, 12, 45, 48, 49, 1, 16, 33, 17, 15, 29, 20, 17, 15, 48, 43, 16, 19, 8, 33, 16, 40, 63, 19, 4, 71, 75, 121, 90, 26, 25, 35, 32, 30, 12, 7, 6, 14, 13, 44, 29, 6, 41, 36, 4, 9, 47, 21, 37, 48, 36, 24, 23, 12, 4, 21, 50, 27, 48, 28, 17, 13, 4, 22, 11, 53, 12, 20, 2, 11, 74, 89, 13, 35, 30, 17, 34, 39, 4, 22, 22, 29, 13, 10, 20, 53, 27, 97, 20, 22, 24, 5, 21, 9, 42, 24, 8, 9, 5, 36, 19, 22, 23, 7, 23, 33, 12, 26, 23, 44, 6, 26, 14, 54, 45, 14, 25, 37, 16, 19, 3, 12, 39, 17, 36, 38, 50, 28, 12, 6, 40, 16, 2, 17, 62, 53, 4, 10, 32, 45, 8, 36, 55, 68, 8, 20, 27, 44, 14, 1, 122, 7, 23, 10, 29, 10, 15, 12, 18, 20, 9, 50, 40, 8, 66, 12, 19, 35], "On-Prem": [82, 14, 4, 42, 40, 10, 11, 47, 35, 6, 57, 36, 13, 35, 71, 17, 17, 23, 36, 52, 43, 3, 26, 37, 35, 19, 44, 57, 6, 5, 36, 46, 17, 3, 27, 35, 60, 26, 121, 29, 64, 21, 9, 26, 39, 4, 52, 19, 10, 31, 23, 51, 26, 16, 40, 37, 28, 23, 80, 28, 44, 76, 40, 37, 23, 64, 19, 17, 14, 23, 1, 23, 29, 77, 42, 9, 10, 47, 28, 96, 80, 53, 21, 17, 34, 22, 64, 21, 30, 37, 4, 40, 28, 82, 25, 12, 7, 29, 33, 11, 35, 42, 35, 96, 73, 47, 58, 35, 12, 9, 97, 6, 36, 7, 26, 22, 8, 66, 88, 26, 26, 52, 61, 12, 23, 34, 53, 10, 29, 26, 37, 62, 130, 30, 17, 19, 26, 27, 22, 15, 42, 18, 27, 37, 30, 24, 48, 15, 35, 46, 16, 22, 11, 45, 40, 17, 16, 13, 11, 47, 13, 36, 93, 24, 40, 41, 7, 22, 47, 71, 22, 19, 11, 105, 26, 73, 21, 16, 43, 56, 53, 20, 51, 13, 20, 11, 10, 14, 13, 26, 7, 14, 7, 29, 69, 14, 23, 13, 17, 30, 91, 67, 80, 52, 23, 20, 14, 18, 10, 10, 15, 17, 21, 44, 21, 28, 91, 4, 16, 27, 15, 22, 37, 36, 52, 5, 17, 61, 26, 35, 8, 54, 24, 34, 40, 53, 31, 24, 9, 7, 30, 35, 39, 34, 46, 30, 83, 25, 18, 67, 25, 28, 48, 45, 28, 13, 46, 27, 9, 19, 6, 59, 28, 21, 12, 38, 36, 18, 18, 25, 61, 28, 37, 42, 41, 12, 14, 4, 22, 16, 42, 31, 16, 24, 1, 34, 52, 23, 20, 6, 33, 40, 42, 37, 23, 26, 26, 51, 6, 27, 45, 9, 26, 19, 17, 15, 61, 16, 8, 16, 14, 39, 4, 6, 38, 10, 24, 11, 11, 19, 40, 40, 37, 22, 7, 49, 36, 35, 12, 44, 10, 67, 53, 75, 26, 23, 19, 99, 40, 9, 62, 22, 39, 46, 48, 6, 7, 42, 18, 16, 14, 47, 95, 48, 17, 45, 7, 22, 5, 18, 29, 106, 57, 5, 5, 14, 81, 5, 14, 20, 15, 34, 16, 95, 36, 34, 22, 18, 67, 11, 40, 16, 10, 66, 44, 31, 12, 68, 11, 9, 25, 41, 19, 41, 40, 57, 30, 11, 35, 38, 63, 10, 40, 15, 37, 32, 23, 19, 36, 9, 36, 25, 17, 57, 40, 7, 7, 18, 8, 51, 74, 65, 14, 9, 19, 38, 46, 58, 30, 10, 17, 7, 44, 13, 27, 36, 33, 31, 19, 53, 71, 27, 14, 10, 21, 26, 24, 53, 18, 9, 29, 11, 10, 3, 4, 16, 22, 18, 7, 59, 14, 16, 67, 6, 40, 27, 8, 2, 35, 2, 27, 15, 18, 5, 9, 30, 37, 1, 36, 20, 72, 35, 70, 37, 17, 7, 51, 9, 37, 9, 26, 50, 17, 70, 40, 11, 7, 13, 25, 74, 21, 19, 16, 5, 9, 56, 17, 22, 18, 69, 14, 13, 39, 30, 40, 63, 21, 38, 20, 51, 24, 17, 32, 60, 47, 14, 28, 7, 25, 26, 23, 37, 57, 27, 31, 5, 35, 55, 40, 12, 35, 30, 13, 18, 23, 31, 36, 23, 32, 39, 29, 44, 15, 77, 32, 81, 86, 7, 5, 10, 58, 22, 18, 41, 24, 1, 23, 27, 22, 9, 22, 48, 61, 29, 17, 33, 52, 56, 5, 80, 17, 45, 66, 23, 51, 21, 36, 57, 18, 22, 9, 5, 37, 26, 10, 8, 29, 24, 19, 48, 23, 40, 20, 37, 31, 4, 39, 29, 63, 9, 25, 8, 19, 32, 37, 5, 18, 88, 12, 26, 8, 11, 52, 47, 45, 36, 17, 16, 14, 25, 9, 53, 13, 13, 34, 2, 7, 24, 12, 26, 48, 18, 18, 27, 25, 18, 56, 23, 36, 18, 55, 9, 49, 25, 19, 25, 43, 20, 53, 35, 93, 14, 40, 7, 21, 37, 42, 19, 58, 66, 14, 22, 20, 16, 63, 63, 21, 25, 48, 75, 23, 11, 83, 13, 5, 16, 37, 28, 6, 21, 19, 64, 54, 17, 45, 16, 43, 31, 62, 17, 38, 6, 28, 9, 67, 16, 5, 48, 22, 67, 90, 33, 8, 44, 44, 18, 16, 16, 72, 53, 29, 80, 11, 53, 17, 15, 25, 17, 34, 30, 37, 17, 101, 10, 10, 19, 93, 44, 16, 16, 31, 54, 25, 8, 29, 12, 22, 5, 67, 25, 104, 56, 22, 14, 17, 92, 107, 35, 53, 25, 28, 22, 58, 75, 28, 28, 23, 76, 48, 11, 90, 2, 17, 70, 41, 69, 8, 27, 34, 32, 24, 28, 9, 19, 26, 19, 19, 57, 11, 28, 7, 46, 33, 102, 10, 82, 12, 21, 8, 101, 37, 21, 28, 39, 2, 8, 13, 58, 57, 36, 17, 69, 47, 65, 19, 11, 10, 40, 5, 6, 16, 32, 13, 58, 65, 1, 37, 17, 38, 37, 12, 13, 19, 7, 12, 29, 18, 13, 60, 16, 41, 9, 27, 4, 34, 8, 34, 17, 25, 12, 36, 26, 47, 56, 62, 25, 26, 15, 7, 10, 43, 21, 11, 29, 33, 36, 28, 25, 61, 10, 22, 4, 20, 33, 40, 42, 86, 13, 27, 22, 76, 44, 33, 5, 10, 30, 12, 25, 9, 56, 13, 5, 7, 30, 13, 51, 10, 33, 60, 12, 13, 18, 57, 56, 36, 40, 30, 130, 16, 64, 13, 42, 27, 10, 24, 47, 19, 24, 12, 21, 8, 31, 76, 15, 8, 22, 19, 5, 28, 18, 67, 18, 13, 41, 3, 29, 46, 55, 2, 19, 14, 18, 63, 14, 46, 30, 17, 16, 32, 34, 40, 7, 23, 63, 7, 7, 50, 38, 41, 36, 15, 44, 21, 12, 19, 29, 43, 37, 15, 30, 34, 22, 23, 9, 84, 15, 46, 23, 24, 17, 10, 34, 22, 8, 25, 65, 48, 10, 2, 53, 13, 130, 7, 47, 10, 22, 20, 28, 29, 9, 41, 22, 11, 22, 30, 73, 65, 21, 56, 91, 81, 6, 67, 20, 24, 20, 14, 2, 92, 88, 26, 27, 74, 9, 13, 26, 3, 40, 49, 28, 25, 15, 59, 6, 20, 34, 30, 42, 16, 23, 47, 49, 49, 10, 67, 106, 34, 32, 6, 66, 13, 5, 12, 67, 40, 54, 13, 39, 47, 30, 10, 10, 16, 23, 14, 47, 56, 28, 15, 22, 28, 22, 25, 53, 14, 92, 29, 21, 14, 74, 20, 14, 17, 32, 24, 50, 15, 35, 43, 20, 28, 51, 81, 9, 42, 18, 35, 30, 11, 46, 67, 13, 50, 61, 47, 15, 115, 27, 61, 47, 19, 80, 16, 36, 33, 35, 71, 27, 31, 32, 101, 58, 6, 17, 29, 70, 75, 26, 16, 23, 29, 22, 63, 17, 8, 37, 48, 23, 26, 18, 25, 39, 34, 25, 17, 46, 19, 9, 30, 5, 33, 56, 28, 28, 8, 55, 16, 31, 86, 61, 22, 46, 38, 54, 53, 16, 3, 15, 32, 2, 38, 44, 15, 23, 18, 40, 57, 9, 36, 65, 16, 13, 11, 13, 85, 98, 71, 41, 34, 24, 28, 47, 33, 18, 15, 28, 39, 15, 6, 13, 34, 15, 35, 17, 27, 35, 20, 7, 5, 22, 11, 52, 21, 19, 30, 33, 13, 22, 22, 48, 22, 38, 24, 15, 15, 43, 7, 23, 39, 22, 24, 49, 13, 62, 33, 17, 6, 36, 21, 39, 33, 5, 34, 90, 4, 50, 27, 8, 23, 76, 98, 13, 4, 9, 33, 25, 13, 24, 16, 16, 11, 43, 26, 2, 44, 28, 80, 90, 68, 78, 3, 52, 11, 114, 8, 5, 53, 19, 4, 25, 42, 12, 67, 36, 55, 34, 23, 20, 33, 35, 18, 23, 91, 29, 31, 77, 37, 33, 41, 47, 68, 34, 83, 34, 19, 34, 30, 11, 72, 5, 30, 11, 56, 38, 34, 23, 68, 23, 87, 13, 28, 46, 40, 25, 2, 10, 9, 40, 11, 16, 17, 8, 28, 56, 52, 16, 12, 14, 52, 14, 75, 38, 25, 16, 28, 10, 7, 38, 25, 122, 18, 6, 34, 11, 51, 57, 12, 14, 57, 16, 86, 24, 25, 46, 36, 9, 15, 52, 37, 86, 33, 38, 13, 57, 2, 28, 9, 130, 30, 7, 27, 56, 31, 24, 13, 7, 30, 32, 12, 6, 12, 49, 50, 41, 64, 18, 11, 43, 5, 45, 48, 16, 2, 11, 7, 14, 31, 16, 47, 11, 39, 10, 11, 8, 28, 11, 70, 46, 45, 3, 17, 19, 30, 9, 22, 14, 77, 46, 88, 44, 14, 62, 45, 50, 13, 21, 90, 47, 34, 37, 12, 17, 5, 22, 40, 22, 49, 19, 14, 17, 43, 73, 91, 40, 48, 7, 20, 13, 13, 16, 67, 54, 11, 53, 25, 12, 21, 86, 18, 8, 27, 27, 27, 24, 61, 44, 25, 32, 24, 7, 75, 12, 42, 38, 5, 2, 13, 2, 69, 20, 8, 52, 17, 57, 28, 47, 17, 27, 94, 27, 33, 9, 14, 49, 30, 28, 22, 13, 58, 65, 27, 23, 68, 15, 18, 47, 18, 26, 22, 10, 50, 77, 34, 7, 63, 28, 26, 25, 35, 5, 43, 31, 41, 20, 4, 44, 21, 18, 13, 33, 13, 18, 56, 101, 36, 11, 30, 5, 55, 29, 7, 68, 24, 8, 42, 12, 35, 36, 86, 39, 48, 29, 1, 33, 23, 22, 18, 22, 15, 45, 11, 79, 12, 9, 16, 22, 57, 34, 2, 2, 23, 35, 20, 12, 27, 33, 38, 37, 44, 110, 18, 85, 26, 12, 35, 42, 66, 18, 2, 32, 51, 21, 69, 5, 13, 65, 49, 32, 57, 35, 51, 10, 44, 37, 21, 58, 22, 27, 33, 24, 16, 27, 35, 29, 80, 52, 54, 36, 22, 38, 29, 23, 35, 21, 42, 60, 24, 13, 11, 8, 3, 27, 12, 26, 51, 34, 20, 19, 57, 13, 56, 30, 18, 19, 53, 12, 30, 73, 21, 8, 14, 71, 30, 56, 51, 107, 50, 103, 59, 36, 58, 53, 7, 49, 13, 17, 56, 22, 7, 35, 19, 60, 21, 23, 81, 14, 14, 23, 19, 62, 11, 24, 21, 8, 22, 33, 130, 7, 75, 55, 35, 11, 20, 18, 25, 7, 31, 34, 5, 9, 31, 84, 60, 24, 21, 15, 14, 22, 101, 21, 28, 10, 41, 15, 19, 20, 12, 25, 46, 59, 10, 82, 58, 66, 9, 61, 14, 28, 7, 4, 80, 63, 35, 16, 24, 36, 15, 16, 96, 8, 33, 93, 16, 42, 55, 19, 25, 30, 72, 33, 15, 10, 40, 31, 15, 17, 3, 57, 39, 69, 11, 17, 6, 32, 1, 22, 88, 23, 42, 62, 12, 12, 22, 38, 10, 14, 79, 94, 44, 27, 45, 7, 15, 24, 57, 59, 25, 8, 20, 24, 21, 42, 23, 17, 44, 3, 32, 100, 48, 23, 82, 44, 21, 82, 50, 36, 46, 5, 46, 22, 13, 6, 32, 9, 8, 32, 15, 31, 5, 7, 12, 9, 10, 38, 21, 18, 32, 34, 17, 54, 22, 40, 15, 67, 20, 22, 32, 6, 30, 43, 17, 24, 26, 49, 12, 56, 4, 11, 5, 13, 41, 33, 30, 13, 24, 57, 13, 14, 14, 28, 38, 44, 20, 18, 16, 36, 6, 22, 22, 40, 8, 43, 35, 81, 71, 54, 3, 9, 9, 99, 9, 14, 39, 34, 44, 21, 36, 15, 26, 65, 9, 52, 22, 12, 13, 22, 68, 7, 67, 38, 35, 62, 50, 11, 13, 3, 17, 53, 51, 15, 44, 24, 34, 61, 12, 12, 63, 38, 66, 13, 15, 34, 6, 32, 19, 25, 44, 46, 84, 56, 4, 12, 32, 18, 37, 25, 22, 42, 34, 2, 38, 16, 16, 25, 11, 65, 6, 74, 47, 13, 24, 47, 35, 13, 21, 48, 36, 47, 8, 59, 37, 11, 8, 73, 15, 61, 24, 14, 9, 44, 20, 29, 50, 21, 21, 41, 62, 26, 69, 30, 47, 27, 7, 101, 46, 49, 42, 38, 98, 15, 1, 56, 33, 57, 37, 5, 34, 53, 31, 35, 6, 66, 10, 21, 22, 8, 8, 37, 80, 24, 24, 46, 65, 20, 25, 13, 34, 51, 53, 16, 40, 38, 6, 19, 13, 42, 13, 60, 19, 37, 14, 47, 26, 2, 19, 22, 25, 13, 72, 6, 7, 37, 96, 35, 4, 38, 75, 20, 19, 44, 43, 23, 20, 8, 50, 130, 37, 55, 83, 40, 29, 32, 57, 23, 18, 15, 37, 43, 45, 28, 11, 26, 32, 62, 90, 38, 55, 53, 19, 11, 34, 31, 36, 39, 80, 25, 49, 67, 23, 3, 33, 12, 35, 34, 9, 45, 24, 37, 10, 47, 59, 130, 36, 26, 26, 54, 28, 67, 19, 5, 29, 32, 18, 37, 6, 37, 11, 8, 31, 8, 4, 17, 38, 13, 38, 23, 26, 83, 42, 18, 6, 32, 7, 90, 27, 54, 9, 42, 62, 44, 51, 39, 21, 14, 16, 91, 34, 66, 54, 8, 7, 42, 38, 32, 49, 17, 21, 38, 18, 21, 55, 41, 23, 53, 12, 7, 9, 31, 4, 14, 22, 14, 8, 34, 3, 20, 33, 39, 25, 38, 16, 37, 8, 33, 26, 14, 34, 10, 38, 13, 37, 14, 22, 20, 25, 28, 18, 9, 58, 13, 20, 20, 27, 41, 80, 15, 14, 28, 16, 55, 18, 39, 5, 52, 26, 10, 34, 19, 23, 22, 11, 26, 21, 29, 56, 17, 11, 4, 87, 13, 17, 24, 26, 4, 25, 20, 100, 8, 31, 41, 73, 27, 67, 23, 27, 28, 54, 15, 37, 18, 23, 38, 36, 23, 71, 4, 16, 49, 5, 17, 30, 26, 26, 34, 80, 81, 5, 22, 15, 71, 56, 11, 114, 45, 35, 36, 9, 63, 4, 36, 57, 12, 47, 29, 50, 55, 54, 44, 26, 25, 102, 18, 12, 7, 42, 38, 28, 38, 50, 23, 40, 21, 41, 68, 31, 50, 59, 96, 34, 4, 39, 4, 42, 25, 85, 9, 77, 48, 27, 27, 41, 19, 54, 4, 6, 14, 52, 13, 52, 33, 17, 54, 7, 13, 20, 23, 68, 14, 52, 73, 75, 34, 22, 19, 22, 113, 38, 31, 50, 51, 10, 53, 40, 45, 30, 8, 11, 41, 32, 52, 44, 7, 71, 6, 38, 9, 44, 65, 3, 15, 10, 7, 35, 32, 71, 46]}}</script>
+<script>
+const DATA = JSON.parse(document.getElementById('dataPayload').textContent);
+
+document.getElementById('asOfDate').textContent = 'September 19, 2026';
+
+// ---------- KPI strip ----------
+const kpiStrip = document.getElementById('kpiStrip');
+const openAged = DATA.aged_over_60d_by_category.reduce((a,c)=>a+c.sum,0);
+const openTotal = DATA.aging_by_category.reduce((a,c)=>a+c.OpenExceptions,0);
+const kpis = [
+  {num: DATA.total_tests.toLocaleString(), label:'Control tests, trailing 24 months', sub:'1,320 tests across 80 controls'},
+  {num: DATA.overall_exception_rate+'%', label:'Overall control exception rate', sub:'includes Fail + Exception results', cls: DATA.overall_exception_rate>15?'bad':''},
+  {num: openAged+' of '+openTotal, label:'Open exceptions aged 60+ days', sub:'concentrated in one category — see below', cls:'bad'},
+  {num: DATA.distinct_orphan_users, label:'Orphaned accounts (distinct users)', sub:'active access after termination', cls:'watch'},
+  {num: DATA.distinct_sod_users, label:'Users with an SoD conflict', sub:'Finance systems only', cls:'watch'},
+  {num: DATA.vendors_overdue+' of '+DATA.total_vendors, label:'Vendors overdue for reassessment', sub: DATA.high_tier_overdue+' of '+DATA.high_tier_vendors+' are High-tier', cls:'bad'},
+];
+kpiStrip.innerHTML = kpis.map(k=>`
+  <div class="kpi">
+    <div class="num ${k.cls||''}">${k.num}</div>
+    <div class="label">${k.label}</div>
+    <div class="sub">${k.sub}</div>
+  </div>`).join('');
+
+// ---------- Heat map ----------
+const envOrder = {'On-Prem':0,'Hybrid':1,'Cloud':2};
+const envClass = {'On-Prem':'env-onprem','Hybrid':'env-hybrid','Cloud':'env-cloud'};
+const sysEnv = {};
+DATA.exception_rate_by_environment; // (env-level agg only; per-system env comes from heatmap join below)
+// derive system -> environment from sla_by_environment isn't per-system; use heatmap rows plus a lookup table:
+const systemEnvLookup = {
+  'SAP ERP (Finance)':'On-Prem','Oracle Production DB':'On-Prem','Active Directory / IAM':'On-Prem',
+  'Treasury & Banking Portal':'Hybrid',
+  'AWS Cloud Infrastructure':'Cloud','Workday HCM':'Cloud','Salesforce CRM':'Cloud',
+  'Enterprise Data Warehouse':'Cloud','ServiceNow ITSM':'Cloud','Payroll System (ADP)':'Cloud'
+};
+const categories = DATA.exception_rate_by_category.map(c=>c.CategoryName); // already sorted desc by rate
+let systems = [...new Set(DATA.heatmap.map(h=>h.SystemName))];
+systems.sort((a,b)=> (envOrder[systemEnvLookup[a]]-envOrder[systemEnvLookup[b]]) || a.localeCompare(b));
+
+const cellLookup = {};
+DATA.heatmap.forEach(h=>{ cellLookup[h.CategoryName+'|'+h.SystemName]=h; });
+
+function heatColor(pct){
+  // 0 -> good, 15 -> watch, 30+ -> bad ; linear interpolation between stops
+  const stops = [[0,[46,125,70]],[15,[183,121,31]],[32,[178,58,52]]];
+  let p = Math.max(0, Math.min(pct, 32));
+  let lo = stops[0], hi = stops[stops.length-1];
+  for(let i=0;i<stops.length-1;i++){ if(p>=stops[i][0] && p<=stops[i+1][0]){ lo=stops[i]; hi=stops[i+1]; break; } }
+  const range = hi[0]-lo[0] || 1;
+  const t = (p-lo[0])/range;
+  const rgb = lo[1].map((c,i)=> Math.round(c + (hi[1][i]-c)*t));
+  return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+}
+function textOn(rgbStr){
+  const [r,g,b] = rgbStr.match(/\d+/g).map(Number);
+  const lum = (0.299*r+0.587*g+0.114*b);
+  return lum>150 ? '#16222C' : '#F5F7F8';
+}
+
+const heatTable = document.getElementById('heatTable');
+let thead = '<thead><tr><th></th>' + systems.map(s=>`<th class="${envClass[systemEnvLookup[s]]}">${s}</th>`).join('') + '</tr></thead>';
+let tbody = '<tbody>' + categories.map(cat=>{
+  let row = `<tr><th>${cat}</th>`;
+  systems.forEach(sys=>{
+    const c = cellLookup[cat+'|'+sys];
+    if(!c || c.Tests===0){ row += `<td><div class="cell" style="color:var(--ink-faint)">—</div></td>`; return; }
+    const bg = heatColor(c.ExceptionRatePct);
+    row += `<td title="${c.NonPass} of ${c.Tests} tests"><div class="cell" style="background:${bg}; color:${textOn(bg)}">${c.ExceptionRatePct.toFixed(0)}%</div></td>`;
+  });
+  row += '</tr>';
+  return row;
+}).join('') + '</tbody>';
+heatTable.innerHTML = thead + tbody;
+
+const worstRow = DATA.exception_rate_by_category[0];
+const envRate = {}; DATA.exception_rate_by_environment.forEach(e=>envRate[e.Environment]=e.ExceptionRatePct);
+document.getElementById('heatTakeaway').innerHTML =
+  `<b>${worstRow.CategoryName}</b> is the weakest control domain company-wide at <b>${worstRow.ExceptionRatePct}%</b> exceptions (n=${worstRow.Tests} tests) — well above the ${DATA.overall_exception_rate}% overall rate. `+
+  `Legacy on-prem systems run at <b>${envRate['On-Prem']}%</b> exceptions versus <b>${envRate['Cloud']}%</b> for cloud-native systems, so environment, not just category, is a real driver of risk.`;
+
+// ---------- Aging ----------
+const agingList = document.getElementById('agingList');
+const maxAge = Math.max(...DATA.aging_by_category.map(a=>a.AvgDaysOpen));
+const agedLookup = {}; DATA.aged_over_60d_by_category.forEach(a=>agedLookup[a.CategoryName]=a);
+agingList.innerHTML = DATA.aging_by_category.map(a=>{
+  const isWatch = a.CategoryName === worstRow.CategoryName;
+  const aged = agedLookup[a.CategoryName];
+  const agedPct = aged ? aged.AgedRatePctOfOpen : 0;
+  return `<div class="aging-row ${isWatch?'watch':''}">
+    <div class="aging-name">${a.CategoryName}</div>
+    <div class="aging-track"><div class="aging-fill" style="width:${(a.AvgDaysOpen/maxAge*100).toFixed(0)}%"></div></div>
+    <div class="aging-days">${a.AvgDaysOpen.toFixed(0)}d avg</div>
+    <div class="aging-badge ${agedPct>40?'hot':''}">${a.OpenExceptions} open · ${agedPct.toFixed(0)}% aged 60d+</div>
+  </div>`;
+}).join('');
+const cmAging = DATA.aging_by_category.find(a=>a.CategoryName===worstRow.CategoryName);
+document.getElementById('agingTakeaway').innerHTML =
+  `Open <b>${worstRow.CategoryName}</b> exceptions sit unresolved for <b>${cmAging.AvgDaysOpen.toFixed(0)} days</b> on average (worst case ${cmAging.MaxDaysOpen} days) — roughly 3-4x every other category. `+
+  `Recommended action: cap Change Management remediation SLA at 30 days for High/Critical findings and require the control owner to submit a remediation plan at day 15, rather than leaving items open-ended.`;
+
+// ---------- What-if ----------
+const slider = document.getElementById('slaSlider');
+const envColors = {'Cloud':'var(--good)','Hybrid':'var(--watch)','On-Prem':'var(--bad)'};
+function computeWhatIf(sla){
+  const envs = ['On-Prem','Hybrid','Cloud'];
+  let totalN=0, totalOnTime=0;
+  const perEnv = {};
+  envs.forEach(e=>{
+    const arr = DATA.days_by_env[e] || [];
+    const onTime = arr.filter(d=>d<=sla).length;
+    perEnv[e] = {n:arr.length, onTimePct: arr.length? onTime/arr.length*100 : 0};
+    totalN += arr.length; totalOnTime += onTime;
+  });
+  const onTimePct = totalOnTime/totalN*100;
+  const backlog = totalN-totalOnTime;
+  // baseline at 30
+  let baseOnTime=0;
+  envs.forEach(e=>{ baseOnTime += (DATA.days_by_env[e]||[]).filter(d=>d<=30).length; });
+  const baseBacklog = totalN-baseOnTime;
+  return {onTimePct, backlog, delta: backlog-baseBacklog, perEnv, totalN};
+}
+function renderWhatIf(){
+  const sla = parseInt(slider.value,10);
+  document.getElementById('slaValue').textContent = sla;
+  const r = computeWhatIf(sla);
+  document.getElementById('onTimePct').textContent = r.onTimePct.toFixed(1)+'%';
+  document.getElementById('backlogCount').textContent = r.backlog.toLocaleString();
+  const deltaEl = document.getElementById('deltaBacklog');
+  const sign = r.delta>0 ? '+' : '';
+  deltaEl.textContent = sign + r.delta.toLocaleString();
+  deltaEl.className = 'val ' + (r.delta>0?'pos':(r.delta<0?'neg':''));
+
+  const envBox = document.getElementById('envBreakdown');
+  envBox.innerHTML = ['On-Prem','Hybrid','Cloud'].map(e=>{
+    const d = r.perEnv[e];
+    return `<div class="env-card">
+      <div class="env-title"><i style="background:${envColors[e]}"></i>${e}</div>
+      <div class="env-track"><div class="env-fill" style="width:${d.onTimePct.toFixed(0)}%; background:${envColors[e]}"></div></div>
+      <div class="env-pct">${d.onTimePct.toFixed(0)}%</div>
+      <div class="env-n">on-time · n=${d.n.toLocaleString()}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('whatifMech').innerHTML =
+    `<b>Mechanic:</b> every reviewer's actual completion time is held fixed — the slider only changes where the SLA line is drawn through that same distribution. `+
+    `At the current 30-day policy, on-time performance is <b>${computeWhatIf(30).onTimePct.toFixed(1)}%</b>. `+
+    `At the selected ${sla}-day policy it is <b>${r.onTimePct.toFixed(1)}%</b> — a change in the metric with zero change in reviewer capacity. `+
+    (sla<30
+      ? `On-Prem systems are already the constraint (${r.perEnv['On-Prem'].onTimePct.toFixed(0)}% on-time at ${sla} days) — tightening the SLA before automating legacy deprovisioning/certification workflows would make the compliance metric worse without making access any safer.`
+      : `Loosening the SLA recovers backlog on paper but does not address why legacy on-prem reviews take longer in the first place.`);
+}
+slider.addEventListener('input', renderWhatIf);
+renderWhatIf();
+
+// ---------- Identity risk ----------
+function renderBarList(elId, rows, key, total){
+  const max = Math.max(...rows.map(r=>r[key]));
+  document.getElementById(elId).innerHTML = rows.map(r=>`
+    <div class="bar-row ${r[key]===max?'hot':''}">
+      <div>
+        <div class="sys">${r.SystemName}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(r[key]/max*100).toFixed(0)}%"></div></div>
+      </div>
+      <div class="bar-count">${r[key]}</div>
+    </div>`).join('');
+}
+renderBarList('orphanBars', DATA.orphan_by_system, 'OrphanCount');
+renderBarList('sodBars', DATA.sod_by_system, 'SoDCount');
+const topOrphanSys = DATA.orphan_by_system.slice(0,2).map(o=>o.SystemName).join(' and ');
+const orphanShare = ((DATA.orphan_by_system[0].OrphanCount+ (DATA.orphan_by_system[1]?DATA.orphan_by_system[1].OrphanCount:0)) / DATA.orphan_by_system.reduce((a,c)=>a+c.OrphanCount,0) *100).toFixed(0);
+document.getElementById('identityTakeaway').innerHTML =
+  `${orphanShare}% of orphaned-account exposure sits in <b>${topOrphanSys}</b> — both manually deprovisioned, on-prem systems — versus near-zero in cloud systems with automated offboarding. `+
+  `SoD conflicts are 100% concentrated in <b>SAP ERP</b> and <b>Treasury &amp; Banking Portal</b>, the two systems where Finance staff can hold both a transaction-entry and an approval role.`;
+
+// ---------- Vendor ----------
+const vendorBody = document.getElementById('vendorBody');
+vendorBody.innerHTML = DATA.vendor_by_category.map(v=>`
+  <tr class="${v.OverdueCount>0?'flag':''}">
+    <td>${v.ServiceCategory}</td>
+    <td class="num">${v.Vendors}</td>
+    <td class="num">${v.AvgOpenFindings.toFixed(2)}</td>
+    <td class="num">${v.OverdueCount>0 ? '<span class="pill high">'+v.OverdueCount+' overdue</span>' : '0'}</td>
+  </tr>`).join('');
+document.getElementById('vendorTakeaway').innerHTML =
+  `<b>${DATA.vendors_overdue} of ${DATA.total_vendors}</b> vendors are overdue for reassessment, and all ${DATA.vendors_overdue} are High inherent-risk-tier vendors — exactly the population that should have the tightest cadence. `+
+  `Payroll Processing vendors carry the highest average open-findings count (${DATA.vendor_by_category.find(v=>v.ServiceCategory==='Payroll Processing').AvgOpenFindings.toFixed(2)}) of any service category.`;
+</script>
+</body>
+</html>

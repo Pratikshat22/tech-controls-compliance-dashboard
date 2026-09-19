@@ -1,0 +1,81 @@
+ControlKey,ControlID,ControlName,SystemKey,ControlCategoryKey,OwnerKey,TestFrequency,ControlType
+1,AM-0101,Access Management Control - SAP ERP (Finance),1,1,1,Monthly,Preventive
+2,SOD-0102,Segregation of Duties Control - SAP ERP (Finance),1,2,2,Quarterly,Detective
+3,CM-0103,Change Management Control - SAP ERP (Finance),1,3,3,Monthly,Preventive
+4,LS&-0104,Logical Security & Authentication Control - SAP ERP (Finance),1,4,4,Quarterly,Preventive
+5,B&R-0105,Backup & Recovery Control - SAP ERP (Finance),1,5,5,Monthly,Detective
+6,E&D-0106,Encryption & Data Protection Control - SAP ERP (Finance),1,6,6,Semi-Annual,Preventive
+7,V&T-0107,Vendor & Third-Party Oversight Control - SAP ERP (Finance),1,7,7,Quarterly,Detective
+8,IR&-0108,Incident Response & Monitoring Control - SAP ERP (Finance),1,8,8,Monthly,Detective
+9,AM-0201,Access Management Control - Oracle Production DB,2,1,1,Monthly,Preventive
+10,SOD-0202,Segregation of Duties Control - Oracle Production DB,2,2,2,Quarterly,Detective
+11,CM-0203,Change Management Control - Oracle Production DB,2,3,3,Monthly,Preventive
+12,LS&-0204,Logical Security & Authentication Control - Oracle Production DB,2,4,4,Quarterly,Preventive
+13,B&R-0205,Backup & Recovery Control - Oracle Production DB,2,5,5,Monthly,Detective
+14,E&D-0206,Encryption & Data Protection Control - Oracle Production DB,2,6,6,Semi-Annual,Preventive
+15,V&T-0207,Vendor & Third-Party Oversight Control - Oracle Production DB,2,7,7,Quarterly,Detective
+16,IR&-0208,Incident Response & Monitoring Control - Oracle Production DB,2,8,8,Monthly,Detective
+17,AM-0301,Access Management Control - Active Directory / IAM,3,1,1,Monthly,Preventive
+18,SOD-0302,Segregation of Duties Control - Active Directory / IAM,3,2,2,Quarterly,Detective
+19,CM-0303,Change Management Control - Active Directory / IAM,3,3,3,Monthly,Preventive
+20,LS&-0304,Logical Security & Authentication Control - Active Directory / IAM,3,4,4,Quarterly,Preventive
+21,B&R-0305,Backup & Recovery Control - Active Directory / IAM,3,5,5,Monthly,Detective
+22,E&D-0306,Encryption & Data Protection Control - Active Directory / IAM,3,6,6,Semi-Annual,Preventive
+23,V&T-0307,Vendor & Third-Party Oversight Control - Active Directory / IAM,3,7,7,Quarterly,Detective
+24,IR&-0308,Incident Response & Monitoring Control - Active Directory / IAM,3,8,8,Monthly,Detective
+25,AM-0401,Access Management Control - AWS Cloud Infrastructure,4,1,1,Monthly,Preventive
+26,SOD-0402,Segregation of Duties Control - AWS Cloud Infrastructure,4,2,2,Quarterly,Detective
+27,CM-0403,Change Management Control - AWS Cloud Infrastructure,4,3,3,Monthly,Preventive
+28,LS&-0404,Logical Security & Authentication Control - AWS Cloud Infrastructure,4,4,4,Quarterly,Preventive
+29,B&R-0405,Backup & Recovery Control - AWS Cloud Infrastructure,4,5,5,Monthly,Detective
+30,E&D-0406,Encryption & Data Protection Control - AWS Cloud Infrastructure,4,6,6,Semi-Annual,Preventive
+31,V&T-0407,Vendor & Third-Party Oversight Control - AWS Cloud Infrastructure,4,7,7,Quarterly,Detective
+32,IR&-0408,Incident Response & Monitoring Control - AWS Cloud Infrastructure,4,8,8,Monthly,Detective
+33,AM-0501,Access Management Control - Treasury & Banking Portal,5,1,1,Monthly,Preventive
+34,SOD-0502,Segregation of Duties Control - Treasury & Banking Portal,5,2,2,Quarterly,Detective
+35,CM-0503,Change Management Control - Treasury & Banking Portal,5,3,3,Monthly,Preventive
+36,LS&-0504,Logical Security & Authentication Control - Treasury & Banking Portal,5,4,4,Quarterly,Preventive
+37,B&R-0505,Backup & Recovery Control - Treasury & Banking Portal,5,5,5,Monthly,Detective
+38,E&D-0506,Encryption & Data Protection Control - Treasury & Banking Portal,5,6,6,Semi-Annual,Preventive
+39,V&T-0507,Vendor & Third-Party Oversight Control - Treasury & Banking Portal,5,7,7,Quarterly,Detective
+40,IR&-0508,Incident Response & Monitoring Control - Treasury & Banking Portal,5,8,8,Monthly,Detective
+41,AM-0601,Access Management Control - Workday HCM,6,1,1,Monthly,Preventive
+42,SOD-0602,Segregation of Duties Control - Workday HCM,6,2,2,Quarterly,Detective
+43,CM-0603,Change Management Control - Workday HCM,6,3,3,Monthly,Preventive
+44,LS&-0604,Logical Security & Authentication Control - Workday HCM,6,4,4,Quarterly,Preventive
+45,B&R-0605,Backup & Recovery Control - Workday HCM,6,5,5,Monthly,Detective
+46,E&D-0606,Encryption & Data Protection Control - Workday HCM,6,6,6,Semi-Annual,Preventive
+47,V&T-0607,Vendor & Third-Party Oversight Control - Workday HCM,6,7,7,Quarterly,Detective
+48,IR&-0608,Incident Response & Monitoring Control - Workday HCM,6,8,8,Monthly,Detective
+49,AM-0701,Access Management Control - Salesforce CRM,7,1,1,Monthly,Preventive
+50,SOD-0702,Segregation of Duties Control - Salesforce CRM,7,2,2,Quarterly,Detective
+51,CM-0703,Change Management Control - Salesforce CRM,7,3,3,Monthly,Preventive
+52,LS&-0704,Logical Security & Authentication Control - Salesforce CRM,7,4,4,Quarterly,Preventive
+53,B&R-0705,Backup & Recovery Control - Salesforce CRM,7,5,5,Monthly,Detective
+54,E&D-0706,Encryption & Data Protection Control - Salesforce CRM,7,6,6,Semi-Annual,Preventive
+55,V&T-0707,Vendor & Third-Party Oversight Control - Salesforce CRM,7,7,7,Quarterly,Detective
+56,IR&-0708,Incident Response & Monitoring Control - Salesforce CRM,7,8,8,Monthly,Detective
+57,AM-0801,Access Management Control - Enterprise Data Warehouse,8,1,1,Monthly,Preventive
+58,SOD-0802,Segregation of Duties Control - Enterprise Data Warehouse,8,2,2,Quarterly,Detective
+59,CM-0803,Change Management Control - Enterprise Data Warehouse,8,3,3,Monthly,Preventive
+60,LS&-0804,Logical Security & Authentication Control - Enterprise Data Warehouse,8,4,4,Quarterly,Preventive
+61,B&R-0805,Backup & Recovery Control - Enterprise Data Warehouse,8,5,5,Monthly,Detective
+62,E&D-0806,Encryption & Data Protection Control - Enterprise Data Warehouse,8,6,6,Semi-Annual,Preventive
+63,V&T-0807,Vendor & Third-Party Oversight Control - Enterprise Data Warehouse,8,7,7,Quarterly,Detective
+64,IR&-0808,Incident Response & Monitoring Control - Enterprise Data Warehouse,8,8,8,Monthly,Detective
+65,AM-0901,Access Management Control - ServiceNow ITSM,9,1,1,Monthly,Preventive
+66,SOD-0902,Segregation of Duties Control - ServiceNow ITSM,9,2,2,Quarterly,Detective
+67,CM-0903,Change Management Control - ServiceNow ITSM,9,3,3,Monthly,Preventive
+68,LS&-0904,Logical Security & Authentication Control - ServiceNow ITSM,9,4,4,Quarterly,Preventive
+69,B&R-0905,Backup & Recovery Control - ServiceNow ITSM,9,5,5,Monthly,Detective
+70,E&D-0906,Encryption & Data Protection Control - ServiceNow ITSM,9,6,6,Semi-Annual,Preventive
+71,V&T-0907,Vendor & Third-Party Oversight Control - ServiceNow ITSM,9,7,7,Quarterly,Detective
+72,IR&-0908,Incident Response & Monitoring Control - ServiceNow ITSM,9,8,8,Monthly,Detective
+73,AM-1001,Access Management Control - Payroll System (ADP),10,1,1,Monthly,Preventive
+74,SOD-1002,Segregation of Duties Control - Payroll System (ADP),10,2,2,Quarterly,Detective
+75,CM-1003,Change Management Control - Payroll System (ADP),10,3,3,Monthly,Preventive
+76,LS&-1004,Logical Security & Authentication Control - Payroll System (ADP),10,4,4,Quarterly,Preventive
+77,B&R-1005,Backup & Recovery Control - Payroll System (ADP),10,5,5,Monthly,Detective
+78,E&D-1006,Encryption & Data Protection Control - Payroll System (ADP),10,6,6,Semi-Annual,Preventive
+79,V&T-1007,Vendor & Third-Party Oversight Control - Payroll System (ADP),10,7,7,Quarterly,Detective
+80,IR&-1008,Incident Response & Monitoring Control - Payroll System (ADP),10,8,8,Monthly,Detective

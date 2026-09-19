@@ -1,0 +1,368 @@
+================================================================================
+DAX MEASURE LIBRARY
+Technology Controls & Compliance Monitoring — Power BI Data Model
+================================================================================
+Paste these into Power BI Desktop: Model view -> right-click Fact_ControlTest
+(or the relevant table) -> New Measure. Calculated COLUMNS (Section 0) must be
+added first, as some measures depend on them.
+
+Every measure below is annotated with WHY it is written the way it is —
+specifically, what row context / filter context it operates in, and what
+would break if you wrote it more naively. You should be able to say these
+explanations out loud in an interview without reading them verbatim.
+
+================================================================================
+SECTION 0 — CALCULATED COLUMNS (build these first)
+================================================================================
+
+-- Fact_ControlTest carries THREE distinct dates (test date, remediation
+-- opened, remediation closed), but only TestDateKey has an active
+-- relationship to Dim_Date. Rather than adding two more relationships to the
+-- same date table (which forces USERELATIONSHIP into every aging measure and
+-- invites "which date is this actually filtering on" bugs), remediation
+-- dates are materialized as plain calculated Date columns via LOOKUPVALUE.
+-- TestDateKey stays the one "role-playing" analytical link to Dim_Date used
+-- for trending; remediation dates are used only inside DATEDIFF, never for
+-- slicing a visual by a "Remediation Date" hierarchy.
+
+Fact_ControlTest[RemediationOpenDate] =
+LOOKUPVALUE(Dim_Date[Date], Dim_Date[DateKey], Fact_ControlTest[RemediationOpenDateKey])
+
+Fact_ControlTest[RemediationDueDate] =
+LOOKUPVALUE(Dim_Date[Date], Dim_Date[DateKey], Fact_ControlTest[RemediationDueDateKey])
+
+Fact_ControlTest[RemediationCloseDate] =
+LOOKUPVALUE(Dim_Date[Date], Dim_Date[DateKey], Fact_ControlTest[RemediationCloseDateKey])
+
+-- Blank RemediationOpenDateKey (i.e. a "Pass" row) simply produces a blank
+-- date, which is exactly what we want: Pass rows should never enter any
+-- aging calculation.
+
+
+================================================================================
+SECTION 1 — BASE COUNTS
+================================================================================
+
+Total Control Tests = COUNTROWS(Fact_ControlTest)
+-- No row context needed to explain; this simply evaluates under whatever
+-- filter context the visual already has (a System slicer, a Category on
+-- matrix rows, a Date range, etc.). Every ratio measure below divides by
+-- this, so it is intentionally the simplest measure in the model.
+
+Total Access Reviews = COUNTROWS(Fact_AccessReview)
+
+Total Vendor Assessments = COUNTROWS(Fact_VendorAssessment)
+
+
+================================================================================
+SECTION 2 — CONTROL TESTING: EXCEPTION / FAILURE RATE
+(answers: "which control category / system is actually failing?")
+================================================================================
+
+Control Exceptions =
+CALCULATE(
+    COUNTROWS(Fact_ControlTest),
+    Fact_ControlTest[TestResult] = "Exception"
+)
+-- CALCULATE injects a new filter predicate on top of whatever context
+-- already exists. TestResult lives on the fact table itself, so this is a
+-- same-table filter — CALCULATE still creates a fresh filter context, which
+-- is why this composes correctly inside a matrix cell that is already
+-- filtered to one System and one Category: the two filters combine with AND.
+
+Control Failures =
+CALCULATE(
+    COUNTROWS(Fact_ControlTest),
+    Fact_ControlTest[TestResult] = "Fail"
+)
+
+Non-Effective Tests = [Control Exceptions] + [Control Failures]
+-- Measure-to-measure arithmetic: each sub-measure independently re-evaluates
+-- in whatever filter context is live when [Non-Effective Tests] is called
+-- (a slicer, a what-if parameter, a drill-through). Nothing here needs to
+-- know about context propagation itself — that is exactly the point of
+-- composing from smaller measures instead of writing one giant formula.
+
+Control Exception Rate % =
+DIVIDE([Non-Effective Tests], [Total Control Tests])
+-- DIVIDE (never a bare "/") returns BLANK — not an error — when a
+-- System x Category cell in the heat map has zero tests. That happens for
+-- real here: Encryption is only tested semi-annually, so several cells have
+-- 4-5 tests and some System/Category combinations in a filtered view can
+-- legitimately have none. A bare "/" would throw and break the whole matrix.
+
+Control Failure Rate % = DIVIDE([Control Failures], [Total Control Tests])
+
+% of Total Non-Effective Tests (Pareto share) =
+DIVIDE(
+    [Non-Effective Tests],
+    CALCULATE([Non-Effective Tests], ALL(Dim_ControlCategory), ALL(Dim_System))
+)
+-- ALL() strips the Category and System filters ONLY inside this CALCULATE,
+-- so the denominator is always the grand total of non-effective tests across
+-- the whole model, no matter which matrix cell, slicer, or drill-down path
+-- the numerator is being evaluated under. This is what makes a Pareto chart
+-- ("Change Management alone accounts for 43% of all control exceptions
+-- company-wide") behave correctly instead of re-basing to 100% inside every
+-- filtered subview.
+
+
+================================================================================
+SECTION 3 — REMEDIATION AGING
+(answers: "how bad is our open-exception backlog, and how stale is it?")
+================================================================================
+
+Open Remediation Items =
+CALCULATE(
+    COUNTROWS(Fact_ControlTest),
+    Fact_ControlTest[RemediationStatus] IN {"Open", "In Progress"}
+)
+
+Avg Remediation Aging (Days Open) =
+AVERAGEX(
+    FILTER(
+        Fact_ControlTest,
+        Fact_ControlTest[RemediationStatus] IN {"Open", "In Progress"}
+    ),
+    DATEDIFF(Fact_ControlTest[RemediationOpenDate], TODAY(), DAY)
+)
+-- AVERAGEX's row context iterates only the OPEN / IN PROGRESS rows returned
+-- by FILTER (FILTER runs row-by-row over the table it's given, independent
+-- of the outer filter context), and for each row computes elapsed days from
+-- when the exception was opened to today. This is a SNAPSHOT metric, not a
+-- period total — it changes every day the report is opened, by design,
+-- because "how old is our backlog right now" is inherently point-in-time.
+-- It is NOT the same question as "how long does remediation typically take"
+-- (that's the next measure) — conflating the two is the single most common
+-- mistake in audit dashboards that report "average remediation time."
+
+Avg Days to Remediate (Closed) =
+AVERAGEX(
+    FILTER(Fact_ControlTest, Fact_ControlTest[RemediationStatus] = "Closed"),
+    DATEDIFF(Fact_ControlTest[RemediationOpenDate], Fact_ControlTest[RemediationCloseDate], DAY)
+)
+-- Cycle-time measure for CLOSED items only. Answers "once we actually start
+-- fixing something, how long does it take end to end" — useful for capacity
+-- planning and for setting realistic remediation SLAs by category.
+
+Aged Exceptions (60+ Days Open) =
+CALCULATE(
+    COUNTROWS(Fact_ControlTest),
+    Fact_ControlTest[RemediationStatus] IN {"Open", "In Progress"},
+    FILTER(
+        Fact_ControlTest,
+        DATEDIFF(Fact_ControlTest[RemediationOpenDate], TODAY(), DAY) > 60
+    )
+)
+-- CALCULATE takes two filter arguments here: a plain column predicate
+-- (status) and a table FILTER (needed because "days open > 60" is a
+-- calculated expression, not a bare column comparison DAX can push down
+-- directly). Both combine with AND. This is the headline "SLA breach"
+-- tripwire used in the executive summary and in Finding #1 below.
+
+Aged Exception Rate % (of Open Backlog) =
+DIVIDE([Aged Exceptions (60+ Days Open)], [Open Remediation Items])
+-- Denominator is the OPEN population, not the full test population. This
+-- answers "of what we currently owe a fix for, how much of it is stale" —
+-- the number an audit committee actually asks about — rather than diluting
+-- it inside the full test population, where it would look artificially small
+-- (e.g. "2% of all tests" sounds fine; "56% of our open Change Management
+-- exceptions are 60+ days old" is the same fact stated honestly).
+
+Remediation Past Due Date (Severity-Based SLA Breach) =
+CALCULATE(
+    COUNTROWS(Fact_ControlTest),
+    Fact_ControlTest[RemediationStatus] IN {"Open", "In Progress"},
+    Fact_ControlTest[RemediationDueDate] < TODAY()
+)
+-- RemediationDueDate was set at open time based on the exception's OWN
+-- severity (Critical=15 days, High=30, Medium=60, Low=90) — so this is a
+-- true, severity-aware SLA-breach count. It deliberately sits alongside the
+-- blunt 60-day tripwire above: a Critical finding open 20 days is ALREADY
+-- breached here but would not show up in the 60-day measure. Reporting only
+-- one of the two hides real risk in one direction or the other.
+
+
+================================================================================
+SECTION 4 — ACCESS REVIEWS: ON-TIME %, ORPHANS, SEGREGATION OF DUTIES
+================================================================================
+
+% Access Reviews Completed On Time (30-Day SLA) =
+VAR CompletedOnTime =
+    CALCULATE(
+        COUNTROWS(Fact_AccessReview),
+        Fact_AccessReview[DaysOutstanding] <= 30
+    )
+RETURN
+    DIVIDE(CompletedOnTime, [Total Access Reviews])
+-- DaysOutstanding is populated for BOTH completed reviews (actual days taken)
+-- and still-open reviews (elapsed days as of today) — so a review that has
+-- been sitting untouched for 90 days counts against on-time performance
+-- immediately, instead of being excluded because it has no completion date
+-- yet. Excluding incomplete reviews is a classic survivorship-bias mistake:
+-- it would make on-time % look best exactly when the backlog is worst.
+
+Orphaned Accounts (Distinct Users) =
+CALCULATE(
+    DISTINCTCOUNT(Fact_AccessReview[UserKey]),
+    Fact_AccessReview[IsOrphanedAccount] = TRUE()
+)
+-- DISTINCTCOUNT, deliberately not COUNTROWS: the same terminated employee
+-- can appear flagged across more than one quarterly cycle before the account
+-- is finally deprovisioned. Counting rows would count that one person 2-3
+-- times and overstate the finding — auditors report orphaned ACCOUNTS
+-- (people/system pairs still active), not orphan-detection EVENTS.
+
+Orphaned Account Rate % =
+DIVIDE([Orphaned Accounts (Distinct Users)], DISTINCTCOUNT(Fact_AccessReview[UserKey]))
+
+SoD Conflicts (Distinct Users) =
+CALCULATE(
+    DISTINCTCOUNT(Fact_AccessReview[UserKey]),
+    Fact_AccessReview[HasSoDConflict] = TRUE()
+)
+
+SoD Conflict Rate % (of Reviewed Users) =
+DIVIDE([SoD Conflicts (Distinct Users)], DISTINCTCOUNT(Fact_AccessReview[UserKey]))
+
+Avg Days to Complete Review =
+CALCULATE(
+    AVERAGE(Fact_AccessReview[DaysOutstanding]),
+    Fact_AccessReview[ReviewStatus] = "Completed"
+)
+-- Filtered to Completed only, on purpose — this is a process-speed metric
+-- ("how long does a finished review actually take"), distinct from the
+-- on-time % measure above, which is a compliance metric that must include
+-- unfinished/overdue reviews to avoid the same survivorship bias.
+
+
+================================================================================
+SECTION 5 — WHAT-IF PARAMETER: ACCESS REVIEW SLA (30 -> 15 DAYS)
+================================================================================
+
+BUILD STEPS (Power BI Desktop UI):
+  1. Modeling ribbon -> New Parameter -> Numeric range.
+  2. Name: "Access Review SLA (Days)"
+  3. Data type: Whole number | Minimum: 10 | Maximum: 45 | Increment: 5 |
+     Default: 30.
+  4. Power BI auto-creates a DISCONNECTED table 'Access Review SLA (Days)'
+     with a column 'Access Review SLA (Days)' and a generated measure:
+        Access Review SLA (Days) Value =
+            SELECTEDVALUE('Access Review SLA (Days)'[Access Review SLA (Days)], 30)
+  5. Add a Slicer visual bound to this new table's field — this is the
+     control the CISO/GRC manager actually drags on the report page.
+
+WHY A DISCONNECTED TABLE MATTERS (this is the mechanic to be able to defend):
+  The parameter table has NO relationship to Fact_AccessReview or any other
+  table. SELECTEDVALUE() reads whatever the slicer is set to and returns it
+  as a plain SCALAR — it is not a filter propagating through the model. That
+  is exactly what you want: the slider changes a NUMBER used inside a
+  formula, but it can never accidentally filter rows out of the fact table
+  the way a normal slicer on a connected column would. If you connected the
+  parameter table to the model instead, moving the slider to "15" would try
+  to filter Fact_AccessReview to rows where some column equals 15, which is
+  not the question being asked at all.
+
+Custom measures built on top of the auto-generated parameter measure:
+
+On-Time % (Dynamic SLA) =
+VAR SelectedSLA = [Access Review SLA (Days) Value]
+VAR OnTimeCount =
+    CALCULATE(COUNTROWS(Fact_AccessReview), Fact_AccessReview[DaysOutstanding] <= SelectedSLA)
+RETURN
+    DIVIDE(OnTimeCount, [Total Access Reviews])
+
+Backlog Count (Dynamic SLA) =
+VAR SelectedSLA = [Access Review SLA (Days) Value]
+RETURN
+    CALCULATE(COUNTROWS(Fact_AccessReview), Fact_AccessReview[DaysOutstanding] > SelectedSLA)
+
+Incremental Backlog vs Current 30-Day SLA =
+VAR SelectedSLA   = [Access Review SLA (Days) Value]
+VAR BreachSelected = CALCULATE(COUNTROWS(Fact_AccessReview), Fact_AccessReview[DaysOutstanding] > SelectedSLA)
+VAR BreachAt30     = CALCULATE(COUNTROWS(Fact_AccessReview), Fact_AccessReview[DaysOutstanding] > 30)
+RETURN
+    BreachSelected - BreachAt30
+-- THE MECHANIC, IN ONE SENTENCE: this measure holds every reviewer's actual,
+-- historical completion behavior constant (DaysOutstanding does not change
+-- when the slider moves) and asks only "how many of those same reviews would
+-- now be classified as breaching, under a stricter policy line drawn through
+-- the same data." That is the honest, first-order answer to "what happens if
+-- we tighten the SLA" — before anyone has added headcount, automated a
+-- system, or changed a process. A positive result quantifies the capacity
+-- gap a policy change would immediately expose; a negative result (loosening
+-- the SLA) quantifies backlog relief.
+-- On THIS dataset: moving the slider from 30 -> 15 takes on-time performance
+-- from 77.8% to 46.3% and adds roughly 2,550 reviews (~31% of the whole
+-- population) to the backlog overnight, with no change in reviewer capacity.
+-- See Section "SLA What-If" in Findings_and_Executive_Summary for the full
+-- numbers and the segmented (cloud vs. on-prem) recommendation.
+
+
+================================================================================
+SECTION 6 — THIRD-PARTY / VENDOR RISK
+================================================================================
+
+Vendors Overdue for Reassessment =
+CALCULATE(
+    DISTINCTCOUNT(Fact_VendorAssessment[VendorKey]),
+    Fact_VendorAssessment[IsLatestAssessment] = TRUE(),
+    Fact_VendorAssessment[OverdueForReassessment] = TRUE()
+)
+-- Filtered to IsLatestAssessment = TRUE() deliberately: a vendor with three
+-- historical assessments on file should be judged "overdue" only against its
+-- MOST RECENT record, not against a stale, already-superseded one. Without
+-- this filter, a vendor that was properly reassessed last quarter could
+-- still get flagged because an old assessment from 2 years ago looks overdue
+-- relative to its own (long since replaced) due date.
+
+% Vendors Overdue for Reassessment =
+DIVIDE([Vendors Overdue for Reassessment], DISTINCTCOUNT(Dim_Vendor[VendorKey]))
+
+High-Risk Vendors with Open Findings =
+CALCULATE(
+    DISTINCTCOUNT(Fact_VendorAssessment[VendorKey]),
+    Fact_VendorAssessment[IsLatestAssessment] = TRUE(),
+    Fact_VendorAssessment[InherentRiskTier] = "High",
+    Fact_VendorAssessment[OpenFindingsCount] > 0
+)
+
+Avg Open Findings per Vendor (Latest Assessment) =
+CALCULATE(
+    AVERAGE(Fact_VendorAssessment[OpenFindingsCount]),
+    Fact_VendorAssessment[IsLatestAssessment] = TRUE()
+)
+
+Total Critical Vendor Findings (Latest Assessment) =
+CALCULATE(
+    SUM(Fact_VendorAssessment[CriticalFindingsCount]),
+    Fact_VendorAssessment[IsLatestAssessment] = TRUE()
+)
+
+
+================================================================================
+SECTION 7 — RISK HEAT MAP (System x Control Category matrix)
+================================================================================
+
+Build steps:
+  1. Insert a Matrix visual.
+  2. Rows: Dim_ControlCategory[CategoryName]. Columns: Dim_System[SystemName].
+  3. Values: [Control Exception Rate %].
+  4. Format -> Cell elements -> add a new rule -> Format style: Color scale.
+     Field: [Control Exception Rate %]. Minimum color = green (#2E7D32),
+     Midpoint = yellow (#F9A825) at ~15%, Maximum color = red (#C62828) at
+     ~30%+.
+  5. Add [Total Control Tests] as a tooltip field so a viewer can see sample
+     size per cell before over-interpreting a small-n cell (several
+     System x Category combinations only have 8-9 tests because the category
+     is tested quarterly or semi-annually over the 24-month window — call
+     this out explicitly rather than letting a 44% rate on n=9 look as solid
+     as a 23% rate on n=250).
+
+No new measure is required for the heat map itself — this is the single
+biggest reason [Control Exception Rate %] was written generically with
+DIVIDE/CALCULATE instead of hardcoded to one category: the exact same
+measure recolors correctly for every Row x Column intersection the matrix
+generates, because each cell simply supplies a different combination of
+Dim_ControlCategory and Dim_System to the filter context the measure already
+respects.

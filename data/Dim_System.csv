@@ -1,0 +1,11 @@
+SystemKey,SystemName,BusinessUnit,Criticality,Environment,LegacyOnPrem
+1,SAP ERP (Finance),Finance,Critical,On-Prem,True
+2,Oracle Production DB,IT,Critical,On-Prem,True
+3,Active Directory / IAM,IT Security,Critical,On-Prem,True
+4,AWS Cloud Infrastructure,IT,Critical,Cloud,False
+5,Treasury & Banking Portal,Finance,Critical,Hybrid,False
+6,Workday HCM,Human Resources,High,Cloud,False
+7,Salesforce CRM,Sales,High,Cloud,False
+8,Enterprise Data Warehouse,Data & Analytics,High,Cloud,False
+9,ServiceNow ITSM,IT,Medium,Cloud,False
+10,Payroll System (ADP),Human Resources,High,Cloud,False

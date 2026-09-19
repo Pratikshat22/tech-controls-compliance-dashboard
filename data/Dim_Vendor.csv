@@ -1,0 +1,26 @@
+VendorKey,VendorName,ServiceCategory,InherentRiskTier,AssessmentCadenceMonths
+1,Nimbus Group,Cloud Hosting,High,12
+2,Meridian Partners,Payment Processing,High,12
+3,Solstice Solutions,Payroll Processing,High,12
+4,Vantage Systems,Data Processing / Analytics,High,12
+5,Ironclad Corp,SaaS Application,Medium,18
+6,Beacon Group,Professional Services / Consulting,Medium,18
+7,Crestline Partners,Facilities / Physical Security,Low,24
+8,Harborview Solutions,Legal / Compliance Services,Low,24
+9,Northgate Systems,Cloud Hosting,High,12
+10,Silverline Corp,Payment Processing,High,12
+11,Bluepeak Group,Payroll Processing,High,12
+12,Redshift Partners,Data Processing / Analytics,High,12
+13,Alderbrook Solutions,SaaS Application,Medium,18
+14,Pinegrove Systems,Professional Services / Consulting,Medium,18
+15,Fairmont Corp,Facilities / Physical Security,Low,24
+16,Wellspring Group,Legal / Compliance Services,Low,24
+17,Cobalt Partners,Cloud Hosting,High,12
+18,Granite Solutions,Payment Processing,High,12
+19,Lumen Systems,Payroll Processing,High,12
+20,Cascadia Corp,Data Processing / Analytics,High,12
+21,Anchorpoint Group,SaaS Application,Medium,18
+22,Brightfield Partners,Professional Services / Consulting,Medium,18
+23,Foxglove Solutions,Facilities / Physical Security,Low,24
+24,Ridgeline Systems,Legal / Compliance Services,Low,24
+25,Summit Corp,Cloud Hosting,High,12
