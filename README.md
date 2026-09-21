@@ -47,3 +47,19 @@ Three fact tables — control tests, access reviews, and vendor assessments — 
 - What I simplified and why, stated plainly rather than left for someone to find: [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md)
 
 ## Repo layout
+
+```
+.
+├── data/       synthetic dataset, 10 CSVs
+├── powerbi/    Excel workbook for Power BI import + the DAX measures file
+├── docs/       findings, data model notes, interview prep, and the HTML prototype
+└── scripts/    the Python that generates the dataset, if you want to reproduce it
+```
+
+## What I'd do differently with more time
+
+If I were extending this, I'd want to pull in an actual GRC or ITSM export format instead of a fully synthetic dataset, and I'd want category-specific remediation SLAs instead of the single severity-based rule I used across every control type. Both are noted in more detail in the assumptions doc.
+
+---
+
+MIT licensed — the write-up and code are free to reuse. The dataset is synthetic; there's no real company or individual's data in here.
