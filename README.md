@@ -1,23 +1,23 @@
 # Technology Controls & Compliance Monitoring
 
-**A Power BI-first GRC / IT-audit analytics project** — a star-schema data model, a fully-explained DAX measure library, and a technology controls & compliance dashboard built over a simulated (but realistically patterned) enterprise dataset: control testing, user access certification, segregation-of-duties conflicts, and third-party vendor risk.
+**An IT Audit / GRC analytics project** — control testing, access certification, segregation-of-duties conflicts, and third-party risk, analyzed over a simulated enterprise dataset and built out in Power BI.
 
-**[Live interactive preview →](https://claude.ai/artifact/71M4HZGNHiZwK43xD1iqGx)** &nbsp;|&nbsp; every number on it is computed from the real dataset in [`/data`](data), not hardcoded.
+**[Live preview →](https://pratikshat22.github.io/tech-controls-compliance-dashboard/)** — a prototype used to validate the analysis before the Power BI build. The audit work is the findings below, not the webpage.
 
 ---
 
-## Why this project
+## What this project is
 
-Most portfolio dashboards use a sales, HR, or subscription-revenue dataset. This one is built around what an **IT audit / technology risk / GRC analyst** actually monitors day to day between formal audit cycles:
+Most portfolio dashboards use a sales or HR dataset. This one is built around what an **IT Audit / GRC analyst** actually reviews between formal audit cycles:
 
 - Are our controls operating effectively, and where is the exception backlog going stale?
 - Are we current on quarterly access recertification, and free of segregation-of-duties conflicts?
 - Are our third-party vendors being reassessed on schedule, proportional to their risk?
-- If we tightened a compliance SLA, what would actually happen to the backlog — before we change it?
+- If we tightened a compliance SLA, what would actually happen to the backlog — before we change the policy?
 
-Every visual maps to a decision a CISO, Internal Audit Lead, or GRC Manager would make with it. Full reasoning for that claim is in [`docs/FINDINGS.md`](docs/FINDINGS.md).
+Every finding below is tied to a specific number pulled from the dataset, with a root cause and a recommendation — the way a finding would be written in a real audit workpaper, not a vague "compliance is low."
 
-## Headline findings
+## Findings
 
 | # | Finding | Number |
 |---|---|---|
@@ -30,85 +30,21 @@ Every visual maps to a decision a CISO, Internal Audit Lead, or GRC Manager woul
 
 Full root-cause analysis and recommendations for each: [`docs/FINDINGS.md`](docs/FINDINGS.md).
 
-## Data model
+## Audit concepts this project applies
 
-A **galaxy schema** — three fact tables at three different grains, sharing conformed dimensions — rather than one flattened table:
+- **Segregation of Duties (SoD):** modeled as two distinct lenses — a raw population risk indicator (who currently holds a conflicting role pair) vs. whether the SoD *monitoring process itself* is operating effectively. Explained in [`docs/INTERVIEW_NOTES.md`](docs/INTERVIEW_NOTES.md#segregation-of-duties-sod).
+- **Remediation aging vs. cycle time:** "days open" (a snapshot of today's backlog) and "time to remediate" (how long closed items actually took) are deliberately kept as separate measures — conflating them is a common mistake in audit reporting. See [`docs/INTERVIEW_NOTES.md`](docs/INTERVIEW_NOTES.md#remediation-aging-days-open-vs-time-to-remediate).
+- **Inherent vs. residual risk (vendor tiering):** assessment cadence follows inherent risk tier; remediation prioritization follows residual risk tier, which escalates when assessment evidence finds critical issues.
+- **Statistical confidence in findings:** the highest single number in the dataset (a 44% exception rate on one system/category pair) is called out as a *watch item*, not a headline finding, because it rests on only 9 tests — a defensible audit finding states its own sample size.
 
-```mermaid
-flowchart LR
-    subgraph Dims [Conformed Dimensions]
-        DD[Dim_Date]
-        DS[Dim_System]
-        DO[Dim_ControlOwner]
-    end
-    DC[Dim_Control] --> FCT
-    DCat[Dim_ControlCategory] --> FCT
-    DU[Dim_User] --> FAR
-    DV[Dim_Vendor] --> FVA
-    DD --> FCT[Fact_ControlTest<br/>1,320 rows]
-    DD --> FAR[Fact_AccessReview<br/>8,096 rows]
-    DD --> FVA[Fact_VendorAssessment<br/>54 rows]
-    DS --> FCT
-    DS --> FAR
-    DO --> FCT
-    DO --> FAR
-```
+Anticipated interview questions and full answers: [`docs/INTERVIEW_NOTES.md`](docs/INTERVIEW_NOTES.md).
 
-Full grain statements, relationship list, and the modeling trade-offs behind it (why some columns are denormalized onto the fact table, why remediation dates are calculated columns instead of extra relationships): [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md).
+## The data model (supporting layer)
 
-## DAX highlights
+A star/galaxy schema — three fact tables (control tests, access reviews, vendor assessments) sharing conformed dimensions — built in Power BI with 20+ DAX measures. This is the technical layer that makes the findings above reproducible and auditable, not the point of the project on its own.
 
-20+ measures, all in [`docs/DAX_MEASURES.md`](docs/DAX_MEASURES.md) (readable) and [`powerbi/DAX_Measures.dax.txt`](powerbi/DAX_Measures.dax.txt) (copy-paste). Two examples:
-
-```dax
-Control Exception Rate % = DIVIDE([Non-Effective Tests], [Total Control Tests])
-
-Orphaned Accounts (Distinct Users) =
-CALCULATE(DISTINCTCOUNT(Fact_AccessReview[UserKey]), Fact_AccessReview[IsOrphanedAccount] = TRUE())
-```
-
-`DIVIDE()` instead of `/` because several heat-map cells legitimately have zero tests (some categories are tested semi-annually). `DISTINCTCOUNT` instead of `COUNTROWS` because the same terminated employee can be flagged orphaned across multiple quarterly cycles before deprovisioning — counting rows would triple-count one person.
-
-## What-if parameter: Access Review SLA
-
-The project's risk-lever requirement: a Power BI **What-If Parameter** (disconnected table + `SELECTEDVALUE()`) that models tightening the access-review SLA from 30 to 15 days — holding every reviewer's actual historical completion time fixed and re-classifying the same 8,096 reviews against a stricter policy line. Try it live in the [interactive preview](https://claude.ai/artifact/71M4HZGNHiZwK43xD1iqGx); the mechanics are fully explained in [`docs/DAX_MEASURES.md`](docs/DAX_MEASURES.md#section-5--what-if-parameter-access-review-sla-30--15-days).
+- Schema, grains, and relationships: [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md)
+- Every DAX measure with the reasoning behind it: [`docs/DAX_MEASURES.md`](docs/DAX_MEASURES.md)
+- The Power BI What-If Parameter behind Finding #5 (SLA policy modeling): [`docs/DAX_MEASURES.md`](docs/DAX_MEASURES.md#section-5--what-if-parameter-access-review-sla-30--15-days)
 
 ## Repo structure
-
-```
-.
-├── data/                        # 10 CSVs: the star schema, source of truth
-├── powerbi/
-│   ├── GRC_Tech_Controls_Dataset.xlsx   # ready for Power BI "Get Data → Excel"
-│   └── DAX_Measures.dax.txt             # every measure, copy-paste ready
-├── docs/
-│   ├── index.html                # interactive dashboard preview (GitHub Pages entry point)
-│   ├── DATA_MODEL.md             # schema, grains, relationships, ERD
-│   ├── DAX_MEASURES.md           # annotated DAX library
-│   ├── FINDINGS.md               # 6 findings, numbers-first, with recommendations
-│   ├── INTERVIEW_NOTES.md        # concept primers + anticipated Q&A
-│   └── ASSUMPTIONS.md            # what's simplified, and why
-└── scripts/
-    ├── generate_dataset.py       # builds the entire dataset from a fixed seed
-    └── analyze_findings.py       # computes every number cited in FINDINGS.md
-```
-
-## Reproduce it
-
-```bash
-git clone https://github.com/<your-username>/tech-controls-compliance-dashboard.git
-cd tech-controls-compliance-dashboard
-pip install -r scripts/requirements.txt
-python scripts/generate_dataset.py     # rebuilds data/*.csv from seed 42
-python scripts/analyze_findings.py     # rebuilds docs/findings_stats.json
-```
-
-Then open `powerbi/GRC_Tech_Controls_Dataset.xlsx` in Power BI Desktop and follow [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md#why-theres-no-pbix-file-in-this-repo) to build the report.
-
-## Skills demonstrated
-
-`Star/galaxy schema design` · `DAX (CALCULATE, DIVIDE, DISTINCTCOUNT, AVERAGEX, FILTER, ALL, SELECTEDVALUE)` · `Power BI What-If Parameters` · `Data modeling trade-offs (grain, denormalization, role-playing dimensions)` · `Python (pandas/numpy) synthetic data generation with controlled statistical properties` · `IT/SOX control concepts (SoD, remediation aging, control testing, ITGC)` · `Third-party/vendor risk tiering` · `Root-cause analysis and audit-style findings writing`
-
-## License
-
-[MIT](LICENSE) — the code and documentation are free to reuse; the dataset is synthetic and carries no real-world data.
